@@ -1,0 +1,34 @@
+# ───────── 機密 (絕對不可進 repo) ─────────
+*-token-*.md
+.env
+.env.local
+.env*.local
+*.pem
+*.key
+
+# ───────── 原型壓縮檔 ─────────
+*.tsx.zip
+
+# ───────── Node / Next.js ─────────
+node_modules/
+.next/
+out/
+dist/
+*.tsbuildinfo
+next-env.d.ts
+
+# ───────── Supabase ─────────
+supabase/.branches/
+supabase/.temp/
+.supabase/
+
+# ───────── 測試 / 工具 ─────────
+coverage/
+playwright-report/
+test-results/
+.vercel/
+
+# ───────── 系統 ─────────
+.DS_Store
+*.log
+npm-debug.log*
