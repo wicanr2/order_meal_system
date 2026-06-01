@@ -32,3 +32,10 @@ test-results/
 .DS_Store
 *.log
 npm-debug.log*
+
+# docker dev
+.docker-home/
+
+# deploy secrets
+.deploy-secrets.local
+.vercel

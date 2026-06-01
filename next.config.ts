@@ -5,6 +5,8 @@ const nextConfig: NextConfig = {
   turbopack: {
     root: __dirname,
   },
+  // 關閉開發模式左下角的 Next.js 指示器(N)
+  devIndicators: false,
 };
 
 export default nextConfig;
