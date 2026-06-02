@@ -41,10 +41,10 @@ export async function POST(req: Request) {
   const body = await req.json();
   const empId = (body.empId ?? '').trim();
   const name = (body.name ?? '').trim();
-  const password = body.password ?? '';
-  if (!empId || !name || !password) {
-    return NextResponse.json({ error: '工號、姓名、密碼為必填' }, { status: 400 });
+  if (!empId || !name) {
+    return NextResponse.json({ error: '工號、姓名為必填' }, { status: 400 });
   }
+  const password = name; // 無密碼模式:中文姓名即登入憑證
   const email = empIdToEmail(empId);
   const admin = createAdminClient();
 
@@ -91,15 +91,16 @@ export async function PATCH(req: Request) {
   const { error: e1 } = await admin.from('profiles').update(patch).eq('emp_id', empId);
   if (e1) return NextResponse.json({ error: e1.message }, { status: 400 });
 
-  // 同步 auth user(改密碼 / 改名同步 metadata / 停用以 ban 擋登入)
-  const needAuth = body.password || body.name !== undefined || body.active !== undefined;
+  // 同步 auth user(改名 → password=姓名 + metadata 同步;停用以 ban 擋登入)
+  const needAuth = body.name !== undefined || body.active !== undefined;
   if (needAuth) {
     const authUser = await findAuthUser(admin, empIdToEmail(empId));
     if (authUser) {
       const upd: Record<string, unknown> = {};
-      if (body.password) upd.password = body.password;
       if (body.name !== undefined) {
-        upd.user_metadata = { ...authUser.user_metadata, name: String(body.name).trim(), emp_id: empId };
+        const nm = String(body.name).trim();
+        upd.password = nm; // 無密碼模式:姓名即憑證,改名同步
+        upd.user_metadata = { ...authUser.user_metadata, name: nm, emp_id: empId };
       }
       if (body.active !== undefined) upd.ban_duration = body.active ? 'none' : BAN_FOREVER;
       await admin.auth.admin.updateUserById(authUser.id, upd);

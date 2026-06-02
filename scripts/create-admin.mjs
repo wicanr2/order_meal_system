@@ -9,13 +9,14 @@ const env = Object.fromEntries(
     .map((l) => { const i = l.indexOf('='); return [l.slice(0, i), l.slice(i + 1)]; }),
 );
 
-const url = env.NEXT_PUBLIC_SUPABASE_URL;
-const key = env.SUPABASE_SERVICE_ROLE_KEY;
-const domain = env.NEXT_PUBLIC_INTERNAL_EMAIL_DOMAIN ?? 'test.local';
+// 優先用環境變數(可對本機/雲端),否則 fallback 到 .env.production.local
+const url = process.env.SUPABASE_URL ?? env.NEXT_PUBLIC_SUPABASE_URL;
+const key = process.env.SERVICE_KEY ?? env.SUPABASE_SERVICE_ROLE_KEY;
+const domain = process.env.DOMAIN ?? env.NEXT_PUBLIC_INTERNAL_EMAIL_DOMAIN ?? 'test.local';
 
 const empId = process.env.ADMIN_EMP_ID ?? 'admin';
 const name = process.env.ADMIN_NAME ?? '系統管理員';
-const pw = process.env.ADMIN_PASSWORD ?? 'admin123';
+const pw = name; // 無密碼模式:中文姓名即登入憑證
 const email = `${empId.toLowerCase()}@${domain}`;
 
 const admin = createClient(url, key, { auth: { persistSession: false } });

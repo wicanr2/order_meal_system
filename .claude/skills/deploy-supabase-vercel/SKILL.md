@@ -37,7 +37,24 @@ supabase projects api-keys --project-ref <REF> -o json   # 取 name=anon / name=
 
 `.env.production.local`(gitignore):`NEXT_PUBLIC_SUPABASE_URL=https://<REF>.supabase.co`、`NEXT_PUBLIC_SUPABASE_ANON_KEY=<anon JWT>`、`SUPABASE_SERVICE_ROLE_KEY=<service JWT>`、`NEXT_PUBLIC_INTERNAL_EMAIL_DOMAIN=test.local`。
 
-建 admin:`docker exec ... node scripts/create-admin.mjs`(讀 .env.production.local,先 upsert profile 再 createUser;預設 admin/admin123)。
+建 admin:`scripts/create-admin.mjs`(支援 env `SUPABASE_URL`/`SERVICE_KEY`/`DOMAIN` 覆寫,可對本機/雲端;**無密碼模式**下 password = 姓名「系統管理員」)。
+
+## 使用者匯入(無密碼模式)
+
+本系統採無密碼登入:**工號 + 中文姓名**,姓名即憑證(中文 UTF-8 byte 數天然 ≥ 6,通過 GoTrue 密碼長度檢查)。`scripts/import_users.py`(純 stdlib,解 xlsx + Supabase REST)批次建帳號:每人建 auth user(password=姓名,email_confirm)+ upsert profile(is_admin=false);已存在帳號會更新 password(冪等)。
+
+```bash
+# 本機:--network host 連 127.0.0.1:54321,key 用 .env.local 的 sb_secret
+docker run --rm -i --network host -v "$PWD":/w -w /w \
+  -e SUPABASE_URL=http://127.0.0.1:54321 -e SERVICE_KEY=<本機 service> -e DOMAIN=test.local \
+  -e XLSX="名單.xlsx" python:3.12-slim python3 scripts/import_users.py
+# 雲端:公網,key 用 .env.production.local 的 legacy JWT
+docker run --rm -i -v "$PWD":/w -w /w \
+  -e SUPABASE_URL=https://<REF>.supabase.co -e SERVICE_KEY=<cloud service> -e DOMAIN=test.local \
+  -e XLSX="名單.xlsx" python:3.12-slim python3 scripts/import_users.py
+```
+
+xlsx 欄位:部門代碼 / 部門名稱 / 工號 / 姓名。⚠️ 名單含登入憑證(工號+姓名),務必 gitignore,勿入 repo。
 
 ## B. Vercel
 

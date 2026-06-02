@@ -2,11 +2,12 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Users, UserPlus, Save, X, Pencil, ShieldCheck, Ban, RotateCcw, KeyRound,
+  Users, UserPlus, Save, X, Pencil, ShieldCheck, Ban, RotateCcw,
 } from 'lucide-react';
 import type { Profile } from '@/types';
 
-// 使用者管理(admin only)。寫入經 /api/admin/users(service-role + server 端驗 admin)。
+// 使用者管理(admin only)。無密碼模式:員工以「工號 + 中文姓名」登入,
+// 姓名即登入憑證,故不設密碼欄;改名等同改憑證。寫入經 /api/admin/users。
 export default function UserManager() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
@@ -16,7 +17,6 @@ export default function UserManager() {
   const [nEmpId, setNEmpId] = useState('');
   const [nName, setNName] = useState('');
   const [nDept, setNDept] = useState('');
-  const [nPwd, setNPwd] = useState('');
   const [nAdmin, setNAdmin] = useState(false);
 
   // 編輯中的列
@@ -24,7 +24,6 @@ export default function UserManager() {
   const [eName, setEName] = useState('');
   const [eDept, setEDept] = useState('');
   const [eAdmin, setEAdmin] = useState(false);
-  const [ePwd, setEPwd] = useState('');
 
   const flash = (text: string, type: 'success' | 'error' = 'success') => {
     setMsg({ text, type });
@@ -43,19 +42,17 @@ export default function UserManager() {
   useEffect(() => { load(); }, [load]);
 
   const create = async () => {
-    if (!nEmpId.trim() || !nName.trim() || !nPwd) {
-      flash('工號、姓名、密碼為必填', 'error'); return;
+    if (!nEmpId.trim() || !nName.trim()) {
+      flash('工號、姓名為必填', 'error'); return;
     }
     const res = await fetch('/api/admin/users', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        empId: nEmpId, name: nName, department: nDept, password: nPwd, isAdmin: nAdmin,
-      }),
+      body: JSON.stringify({ empId: nEmpId, name: nName, department: nDept, isAdmin: nAdmin }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) { flash(json.error ?? '新增失敗', 'error'); return; }
-    setNEmpId(''); setNName(''); setNDept(''); setNPwd(''); setNAdmin(false);
+    setNEmpId(''); setNName(''); setNDept(''); setNAdmin(false);
     flash('員工已新增');
     load();
   };
@@ -65,23 +62,18 @@ export default function UserManager() {
     setEName(u.name);
     setEDept(u.department ?? '');
     setEAdmin(u.is_admin);
-    setEPwd('');
   };
 
   const saveEdit = async (empId: string) => {
-    const body: Record<string, unknown> = {
-      empId, name: eName, department: eDept, isAdmin: eAdmin,
-    };
-    if (ePwd) body.password = ePwd;
     const res = await fetch('/api/admin/users', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ empId, name: eName, department: eDept, isAdmin: eAdmin }),
     });
     const json = await res.json().catch(() => ({}));
     if (!res.ok) { flash(json.error ?? '更新失敗', 'error'); return; }
     setEditId(null);
-    flash('已更新(角色變更需該員工重新登入生效)');
+    flash('已更新(改名等同改登入憑證;角色變更需該員工重新登入生效)');
     load();
   };
 
@@ -111,25 +103,22 @@ export default function UserManager() {
 
       {/* 新增員工 */}
       <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-        <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
+        <h2 className="text-lg font-bold text-gray-800 mb-1 flex items-center">
           <UserPlus className="w-5 h-5 mr-2 text-blue-500" /> 新增員工
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3 items-end">
+        <p className="text-xs text-gray-500 mb-4">員工以「工號 + 中文姓名」登入,無需密碼。</p>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3 items-end">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">工號</label>
-            <input value={nEmpId} onChange={(e) => setNEmpId(e.target.value)} placeholder="T12350" className={inputCls} />
+            <input value={nEmpId} onChange={(e) => setNEmpId(e.target.value)} placeholder="A200112" className={inputCls} />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">姓名</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">中文姓名</label>
             <input value={nName} onChange={(e) => setNName(e.target.value)} placeholder="王小明" className={inputCls} />
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">部門</label>
-            <input value={nDept} onChange={(e) => setNDept(e.target.value)} placeholder="研發處" className={inputCls} />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">初始密碼</label>
-            <input type="text" value={nPwd} onChange={(e) => setNPwd(e.target.value)} placeholder="至少 6 碼" className={inputCls} />
+            <input value={nDept} onChange={(e) => setNDept(e.target.value)} placeholder="系統軟體開發處" className={inputCls} />
           </div>
           <div className="flex items-center gap-3">
             <label className="flex items-center text-sm font-medium text-gray-700 gap-1.5">
@@ -206,11 +195,6 @@ export default function UserManager() {
                         <div className="flex items-center justify-end gap-2">
                           {editing ? (
                             <>
-                              <div className="relative">
-                                <KeyRound className="w-4 h-4 absolute left-2 top-1/2 -translate-y-1/2 text-gray-400" />
-                                <input type="text" value={ePwd} onChange={(e) => setEPwd(e.target.value)} placeholder="改密碼(選填)"
-                                  className="pl-7 pr-2 py-1.5 border border-gray-300 rounded-lg text-sm w-36 focus:ring-2 focus:ring-blue-500 outline-none" />
-                              </div>
                               <button onClick={() => saveEdit(u.emp_id)} title="儲存"
                                 className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"><Save className="w-4 h-4" /></button>
                               <button onClick={() => setEditId(null)} title="取消"

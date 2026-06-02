@@ -39,3 +39,7 @@ npm-debug.log*
 # deploy secrets
 .deploy-secrets.local
 .vercel
+
+# 使用者名單(含工號+姓名=登入憑證,勿入 repo)
+*.xlsx
+.~lock.*

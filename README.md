@@ -1,61 +1,69 @@
 # 便當訂購系統 (order_meal_system)
 
-從單檔 React 原型(localStorage)演進為 Next.js + Supabase 的多人系統。完整規劃見 [`PLAN.md`](./PLAN.md),術語見 [`CONTEXT.md`](./CONTEXT.md)。
+公司內部午餐訂購系統。從單檔 React 原型(localStorage)演進為 Next.js + Supabase 的多人系統,已部署上線。
+
+## 線上環境
+
+正式網址:**https://order-meal-system.vercel.app**
+
+- 員工登入:**工號 + 中文姓名**(無密碼)
+- 管理員登入:工號 `admin` + 姓名 `系統管理員`
 
 ## 技術棧
 
-- **前端 / 部署**:Next.js 14 (App Router) + Tailwind + shadcn/ui,部署於 Vercel
-- **後端**:Supabase(Postgres + Auth + RLS)
-- **認證**:工號 + 密碼(custom auth,工號當 email prefix)
-- **本機環境**:Supabase CLI(docker stack)
+- **前端**:Next.js 16 (App Router) + React 19 + Tailwind v4 + TypeScript
+- **後端**:Supabase(Postgres + Auth + RLS),雲端 Seoul region
+- **部署**:Vercel(production)
+- **本機**:docker(Next dev container + Supabase CLI stack)
 
-## 本機開發
+## 功能
+
+- **員工**:依日期點餐 / 取消 / 查看「我的訂餐歷程」
+- **管理員**:設定當日菜單(品項、**結單時間**、立即結束訂單)、訂單統計、CSV 匯出、**使用者管理**(新增 / 編輯 / 停用)、全員訂餐歷程
+- **即時**:訂單變動即時更新(Supabase Realtime)
+- **截止鎖定**:過結單時間後,於 DB 層(restrictive RLS)擋下新增 / 改單 / 取消,前端繞不過
+
+## 認證(無密碼)
+
+以「工號 + 中文姓名」登入。技術上沿用 Supabase Auth:工號轉小寫當 email prefix(`A200112` → `a200112@<domain>`),中文姓名作為帳號憑證(UTF-8 byte 數天然滿足密碼長度)。
+⚠️ 認證強度等同「知道工號 + 姓名即可登入」,適用內部低敏場景;對外或敏感用途請加強(如共用通行碼)。
+
+## 本機開發(docker-first)
 
 ```bash
-# 1. 啟動本機 Supabase(首次會拉 docker image)
+# 1. 本機 Supabase stack
 supabase start
-supabase status            # 取得本機 anon / service_role key
-
-# 2. 套用 schema + 種子資料
+# 2. schema + 種子資料
 supabase db reset
-
-# 3. 設定前端環境變數
-cp .env.local.example .env.local   # 填入 supabase status 的 key
-
-# 4. 啟動前端
-npm install
-npm run dev                # http://localhost:3000
+node scripts/seed-auth.mjs          # 建本機 auth 帳號(db reset 後需重跑)
+# 3. Next dev(跑在 docker container,port 3100)
+docker compose -f docker-compose.dev.yml up -d
+#   → 前端 http://localhost:3100   /   Supabase Studio http://localhost:54323
 ```
 
-Supabase Studio:http://localhost:54323
+## 部署與維運
+
+| 工作 | 方式 |
+|---|---|
+| 部署上雲(Supabase + Vercel) | 見 skill `.claude/skills/deploy-supabase-vercel` |
+| 批次匯入使用者 | `scripts/import_users.py`(讀 xlsx → 建 auth + profile,無密碼模式) |
+| 新增管理員帳號 | `scripts/create-admin.mjs`(支援 env 覆寫,可對本機 / 雲端) |
+
+> 使用者名單 xlsx 含工號+姓名(等同登入憑證),已 gitignore,不入 repo。
 
 ## 目錄
 
 | 路徑 | 內容 |
 |---|---|
-| `supabase/migrations/` | schema + RLS migration |
-| `supabase/seed.sql` | 種子資料(1 admin + 5 員工 + 菜單 + 訂單) |
-| `.claude/agents/` | 六個開發子代理(architect / ux-designer / coder / tester / reviewer / migrator) |
-| `.claude/workflow.md` | 開發 SOP |
-| `legacy/` | 原始單檔 React 原型(migrator 參考) |
+| `app/` | App Router:登入頁、主畫面、`api/admin/users` |
+| `components/` | OrderApp / MenuEditor / OrderHistory / UserManager |
+| `lib/` | supabase client/server/admin、date、csv、auth、jwt |
+| `supabase/migrations/` | schema + RLS(含截止鎖定 restrictive policy) |
+| `scripts/` | seed-auth / create-admin / import_users |
+| `.claude/` | skills + 開發子代理(索引見 `.claude/README.md`) |
+| `legacy/` | 原始單檔 React 原型 |
 
-## Milestone 進度
+## 文件
 
-- [x] CLI 安裝(supabase / vercel)
-- [~] M1 — 本機 Supabase + Schema(migration 已寫,待 `supabase start` 完成驗證)
-- [ ] M2 — Next.js 骨架 + 連線
-- [ ] M3 — Auth(工號+密碼 custom auth)
-- [ ] M4 — localStorage → Supabase 遷移
-- [ ] M5 — 截止時間 + 部門 + 通知
-- [ ] M6 — Staging 上雲 + UAT
-- [ ] M7 — Production
-
-## 雲端(切回對外網路再做)
-
-Supabase 專案 `vasbnvpknlwoqyxwhrac` 已建立。連線測試與 migration push 待對外網路:
-
-```bash
-supabase login              # 用 access token
-supabase link --project-ref vasbnvpknlwoqyxwhrac
-supabase db push            # 推 migration 上雲
-```
+- 規劃:[`PLAN.md`](./PLAN.md) ・ 術語:[`CONTEXT.md`](./CONTEXT.md)
+- Claude 資產(skills / agents)索引:[`.claude/README.md`](./.claude/README.md)

@@ -9,22 +9,23 @@ import { empIdToEmail } from '@/lib/auth';
 export default function LoginPage() {
   const router = useRouter();
   const [empId, setEmpId] = useState('');
-  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // 無密碼登入:以「工號 + 中文姓名」驗證。姓名在後端即作為帳號憑證。
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!empId.trim() || !password) return;
+    if (!empId.trim() || !name.trim()) return;
     setLoading(true);
     setError('');
     const supabase = createClient();
     const { error } = await supabase.auth.signInWithPassword({
       email: empIdToEmail(empId),
-      password,
+      password: name.trim(),
     });
     if (error) {
-      setError('工號或密碼錯誤');
+      setError('工號或姓名錯誤');
       setLoading(false);
       return;
     }
@@ -66,18 +67,18 @@ export default function LoginPage() {
               type="text"
               value={empId}
               onChange={(e) => setEmpId(e.target.value)}
-              placeholder="例如:T12345"
+              placeholder="例如:A200112"
               className="w-full px-5 py-3 border-2 border-yellow-200 bg-yellow-50/30 rounded-2xl focus:ring-4 focus:ring-yellow-200 focus:border-orange-400 outline-none transition-all text-gray-700 placeholder-yellow-400/70 group-hover:border-yellow-300 shadow-sm"
               autoFocus
             />
           </div>
           <div className="text-left group">
-            <label className="block text-sm font-bold text-orange-900/80 mb-1 ml-2">密碼</label>
+            <label className="block text-sm font-bold text-orange-900/80 mb-1 ml-2">中文姓名</label>
             <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="請輸入密碼"
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="例如:王小明"
               className="w-full px-5 py-3 border-2 border-yellow-200 bg-yellow-50/30 rounded-2xl focus:ring-4 focus:ring-yellow-200 focus:border-orange-400 outline-none transition-all text-gray-700 placeholder-yellow-400/70 group-hover:border-yellow-300 shadow-sm"
             />
           </div>
@@ -86,7 +87,7 @@ export default function LoginPage() {
 
           <button
             type="submit"
-            disabled={!empId.trim() || !password || loading}
+            disabled={!empId.trim() || !name.trim() || loading}
             className="w-full bg-gradient-to-r from-orange-500 to-yellow-500 hover:from-orange-600 hover:to-yellow-600 text-white font-bold text-lg py-3.5 px-4 rounded-2xl transition-all transform hover:scale-[1.02] active:scale-[0.98] shadow-md hover:shadow-lg disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:scale-100 mt-4 border-b-4 border-orange-700/20"
           >
             {loading ? '登入中…' : '登入享補助'}
