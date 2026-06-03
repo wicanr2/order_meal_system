@@ -9,7 +9,11 @@ export interface AppClaims {
 export function decodeClaims(accessToken: string): AppClaims {
   try {
     const payload = accessToken.split('.')[1];
-    const json = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    const bin = atob(payload.replace(/-/g, '+').replace(/_/g, '/'));
+    // atob 回傳 Latin-1 binary string;中文 claim(name / acct)是 UTF-8,
+    // 必須還原成 bytes 再以 UTF-8 解碼,否則會變亂碼且 acct 對不上資料庫。
+    const bytes = Uint8Array.from(bin, (c) => c.charCodeAt(0));
+    const json = new TextDecoder('utf-8').decode(bytes);
     return JSON.parse(json) as AppClaims;
   } catch {
     return {};
