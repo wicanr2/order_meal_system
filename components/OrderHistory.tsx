@@ -7,16 +7,16 @@ import type { OrderRecord, Profile } from '@/types';
 
 interface Props {
   isAdmin: boolean;
-  myEmpId: string;
+  myAcct: string;   // account_id = 工號|姓名
 }
 
 // 使用者歷程:員工看自己的歷史訂單;admin 可選特定員工或全員。
 // 資料層走一般 client,RLS(orders_self_rw / orders_admin_read)負責授權。
-export default function OrderHistory({ isAdmin, myEmpId }: Props) {
+export default function OrderHistory({ isAdmin, myAcct }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<OrderRecord[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
-  const [filterEmp, setFilterEmp] = useState<string>(isAdmin ? 'ALL' : myEmpId);
+  const [filterAcct, setFilterAcct] = useState<string>(isAdmin ? 'ALL' : myAcct);
   const [loading, setLoading] = useState(true);
 
   // admin:載入員工清單供篩選
@@ -24,7 +24,7 @@ export default function OrderHistory({ isAdmin, myEmpId }: Props) {
     if (!isAdmin) return;
     (async () => {
       const { data } = await supabase
-        .from('profiles').select('emp_id, name').order('emp_id');
+        .from('profiles').select('account_id, emp_id, name').order('emp_id');
       setStaff((data as Profile[]) ?? []);
     })();
   }, [isAdmin, supabase]);
@@ -32,18 +32,18 @@ export default function OrderHistory({ isAdmin, myEmpId }: Props) {
   const load = useCallback(async () => {
     let q = supabase
       .from('orders')
-      .select('emp_id, date, item_id, item_name, price, created_at, profiles(name)')
+      .select('account_id, emp_id, emp_name, date, item_id, item_name, price, created_at')
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
     if (isAdmin) {
-      if (filterEmp !== 'ALL') q = q.eq('emp_id', filterEmp);
+      if (filterAcct !== 'ALL') q = q.eq('account_id', filterAcct);
     } else {
-      q = q.eq('emp_id', myEmpId);
+      q = q.eq('account_id', myAcct);
     }
     const { data } = await q;
     setRows((data as unknown as OrderRecord[]) ?? []);
     setLoading(false);
-  }, [supabase, isAdmin, filterEmp, myEmpId]);
+  }, [supabase, isAdmin, filterAcct, myAcct]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -60,13 +60,13 @@ export default function OrderHistory({ isAdmin, myEmpId }: Props) {
         <div className="flex items-center gap-3">
           {isAdmin && (
             <select
-              value={filterEmp}
-              onChange={(e) => setFilterEmp(e.target.value)}
+              value={filterAcct}
+              onChange={(e) => setFilterAcct(e.target.value)}
               className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
             >
               <option value="ALL">全體員工</option>
               {staff.map((s) => (
-                <option key={s.emp_id} value={s.emp_id}>
+                <option key={s.account_id} value={s.account_id}>
                   {s.emp_id} {s.name}
                 </option>
               ))}
@@ -102,10 +102,10 @@ export default function OrderHistory({ isAdmin, myEmpId }: Props) {
             </thead>
             <tbody className="text-sm">
               {rows.map((o) => (
-                <tr key={`${o.emp_id}_${o.date}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <tr key={`${o.account_id}_${o.date}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                   <td className="py-3 font-medium text-gray-700">{o.date}</td>
                   {isAdmin && <td className="py-3 font-medium text-gray-500">{o.emp_id}</td>}
-                  {isAdmin && <td className="py-3 font-medium text-gray-800">{o.profiles?.name ?? '—'}</td>}
+                  {isAdmin && <td className="py-3 font-medium text-gray-800">{o.emp_name}</td>}
                   <td className="py-3 text-gray-600">{o.item_name}</td>
                   <td className="py-3 text-right text-gray-800 font-medium">${o.price}</td>
                 </tr>

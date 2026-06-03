@@ -17,6 +17,7 @@ import UserManager from '@/components/UserManager';
 import type { Menu, MenuItem, OrderRecord } from '@/types';
 
 interface Me {
+  acct: string;   // account_id = 工號|姓名,訂單擁有鍵
   empId: string;
   name: string;
   isAdmin: boolean;
@@ -52,8 +53,9 @@ export default function OrderApp() {
       const claims = decodeClaims(session.access_token);
       const meta = session.user.user_metadata ?? {};
       setMe({
+        acct: claims.acct ?? '',
         empId: claims.emp_id ?? meta.emp_id ?? '',
-        name: meta.name ?? claims.emp_id ?? '',
+        name: claims.name ?? meta.name ?? '',
         isAdmin: !!claims.is_admin,
       });
       // 預設菜單只載一次
@@ -68,7 +70,7 @@ export default function OrderApp() {
   const loadDay = useCallback(async (date: string) => {
     const [{ data: menu }, { data: ords }] = await Promise.all([
       supabase.from('daily_menus').select('restaurant, items, deadline').eq('date', date).maybeSingle(),
-      supabase.from('orders').select('emp_id, date, item_id, item_name, price, created_at, profiles(name)')
+      supabase.from('orders').select('account_id, emp_id, emp_name, date, item_id, item_name, price, created_at')
         .eq('date', date).order('created_at'),
     ]);
     setDailyMenu(menu ? { restaurant: menu.restaurant, items: menu.items as MenuItem[], deadline: menu.deadline } : null);
@@ -95,7 +97,7 @@ export default function OrderApp() {
   const currentMenu: Menu | null = dailyMenu ?? defaultMenu;
 
   const myOrder = useMemo(
-    () => (me ? orders.find((o) => o.emp_id === me.empId) ?? null : null),
+    () => (me ? orders.find((o) => o.account_id === me.acct) ?? null : null),
     [orders, me],
   );
 
@@ -109,7 +111,7 @@ export default function OrderApp() {
   const submitOrder = async (item: MenuItem) => {
     if (!me) return;
     const { error } = await supabase.from('orders').upsert({
-      emp_id: me.empId, date: currentDate,
+      account_id: me.acct, emp_id: me.empId, emp_name: me.name, date: currentDate,
       item_id: item.id, item_name: item.name, price: item.price,
     });
     if (error) { showToast(isLocked ? '已過截止時間,無法點餐' : '送出失敗', 'error'); return; }
@@ -119,7 +121,7 @@ export default function OrderApp() {
 
   const cancelOrder = async () => {
     if (!me) return;
-    const { error } = await supabase.from('orders').delete().match({ emp_id: me.empId, date: currentDate });
+    const { error } = await supabase.from('orders').delete().match({ account_id: me.acct, date: currentDate });
     if (error) { showToast('取消失敗', 'error'); return; }
     showToast('訂單已取消');
     loadDay(currentDate);
@@ -132,7 +134,7 @@ export default function OrderApp() {
     }
     const { error } = await supabase.from('daily_menus').upsert({
       date: currentDate, restaurant: restaurant.trim(), items,
-      deadline: timeToDeadlineISO(currentDate, deadlineTime), updated_by: me.empId,
+      deadline: timeToDeadlineISO(currentDate, deadlineTime), updated_by: me.acct,
     });
     if (error) { showToast('儲存失敗', 'error'); return; }
     showToast('菜單已儲存並發布!');
@@ -151,7 +153,7 @@ export default function OrderApp() {
     if (!me || !currentMenu) return;
     const { error } = await supabase.from('daily_menus').upsert({
       date: currentDate, restaurant: currentMenu.restaurant, items: currentMenu.items,
-      deadline: new Date().toISOString(), updated_by: me.empId,
+      deadline: new Date().toISOString(), updated_by: me.acct,
     });
     if (error) { showToast('操作失敗', 'error'); return; }
     showToast('已結束本日訂單');
@@ -161,7 +163,7 @@ export default function OrderApp() {
   const exportCsv = () => {
     if (orders.length === 0) { showToast('目前沒有訂單可匯出', 'error'); return; }
     const csv = ordersToCsv(orders.map((o) => ({
-      empId: o.emp_id, name: o.profiles?.name ?? o.emp_id,
+      empId: o.emp_id, name: o.emp_name,
       itemName: o.item_name, price: o.price, createdAt: o.created_at,
     })));
     downloadCsv(`訂餐明細_${currentDate}.csv`, csv);
@@ -388,9 +390,9 @@ export default function OrderApp() {
                         </thead>
                         <tbody className="text-sm">
                           {orders.map((o) => (
-                            <tr key={o.emp_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                            <tr key={o.account_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                               <td className="py-3 font-medium text-gray-500">{o.emp_id}</td>
-                              <td className="py-3 font-medium text-gray-800">{o.profiles?.name ?? '—'}</td>
+                              <td className="py-3 font-medium text-gray-800">{o.emp_name}</td>
                               <td className="py-3 text-gray-600">{o.item_name}</td>
                               <td className="py-3 text-right text-gray-800 font-medium">${o.price}</td>
                             </tr>
@@ -408,7 +410,7 @@ export default function OrderApp() {
         {view === 'users' && me.isAdmin && <UserManager />}
 
         {view === 'history' && (
-          <OrderHistory isAdmin={me.isAdmin} myEmpId={me.empId} />
+          <OrderHistory isAdmin={me.isAdmin} myAcct={me.acct} />
         )}
       </main>
     </div>

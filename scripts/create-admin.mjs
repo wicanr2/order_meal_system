@@ -17,14 +17,16 @@ const domain = process.env.DOMAIN ?? env.NEXT_PUBLIC_INTERNAL_EMAIL_DOMAIN ?? 't
 const empId = process.env.ADMIN_EMP_ID ?? 'admin';
 const name = process.env.ADMIN_NAME ?? '系統管理員';
 const pw = name; // 無密碼模式:中文姓名即登入憑證
+// email = legacy 工號@domain(opaque、不可變;admin 單一帳號無撞名疑慮)
 const email = `${empId.toLowerCase()}@${domain}`;
 
 const admin = createClient(url, key, { auth: { persistSession: false } });
 
-// 先建 profile(hook 靠 email 對應 profile 注入 emp_id/is_admin)
-const { error: pe } = await admin.from('profiles').upsert({
-  emp_id: empId, name, is_admin: true, email, active: true,
-});
+// 先建 profile(account_id 由 trigger 推導;email 用 legacy)
+const { error: pe } = await admin.from('profiles').upsert(
+  { emp_id: empId, name, email, is_admin: true, active: true },
+  { onConflict: 'account_id' },
+);
 if (pe) { console.error('profile 建立失敗:', pe.message); process.exit(1); }
 
 // 再建 auth user(已存在則更新密碼)

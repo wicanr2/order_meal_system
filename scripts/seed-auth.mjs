@@ -1,4 +1,5 @@
 // 為每個 profile 建立可登入的 auth.users (本機 / staging 種子)
+// 無密碼模式:password = 中文姓名;email 取 profile.email(由 trigger 從 工號+姓名 推導)。
 // 用法:node scripts/seed-auth.mjs   (讀 .env.local)
 import { createClient } from '@supabase/supabase-js';
 import { readFileSync } from 'node:fs';
@@ -16,7 +17,6 @@ loadEnv(new URL('../.env.local', import.meta.url).pathname);
 
 const URL_ = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const SERVICE = process.env.SUPABASE_SERVICE_ROLE_KEY;
-const PASSWORD = process.env.SEED_PASSWORD || 'test1234';
 
 if (!URL_ || !SERVICE) {
   console.error('缺 NEXT_PUBLIC_SUPABASE_URL 或 SUPABASE_SERVICE_ROLE_KEY');
@@ -33,10 +33,10 @@ if (error) { console.error('讀 profiles 失敗:', error.message); process.exit(
 
 let created = 0, skipped = 0;
 for (const p of profiles) {
-  if (!p.email) continue;
+  if (!p.email || !p.name) continue;
   const { error: e } = await admin.auth.admin.createUser({
     email: p.email,
-    password: PASSWORD,
+    password: p.name,            // 無密碼模式:中文姓名即登入憑證
     email_confirm: true,
     user_metadata: { emp_id: p.emp_id, name: p.name },
   });
@@ -45,7 +45,7 @@ for (const p of profiles) {
     else { console.error(`建立 ${p.email} 失敗:`, e.message); }
   } else {
     created++;
-    console.log(`建立 auth user: ${p.email} (${p.emp_id})`);
+    console.log(`建立 auth user: ${p.email} (${p.emp_id} ${p.name})`);
   }
 }
-console.log(`\n完成:新建 ${created}、已存在略過 ${skipped}。統一密碼:${PASSWORD}`);
+console.log(`\n完成:新建 ${created}、已存在略過 ${skipped}。密碼 = 各自中文姓名。`);

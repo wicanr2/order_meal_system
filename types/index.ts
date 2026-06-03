@@ -12,18 +12,19 @@ export interface Menu {
 }
 
 export interface OrderRecord {
-  emp_id: string;
+  account_id: string;          // 擁有鍵 = 工號|姓名
+  emp_id: string;              // 工號(顯示快照)
+  emp_name: string;            // 姓名(顯示快照,免 join profiles)
   date: string;
   item_id: string;
   item_name: string;
   price: number;
   note?: string | null;
   created_at?: string | null;
-  // 內嵌的 profile 名稱(supabase select 關聯)
-  profiles?: { name: string } | null;
 }
 
 export interface Profile {
+  account_id: string;          // 工號|姓名
   emp_id: string;
   name: string;
   department?: string | null;

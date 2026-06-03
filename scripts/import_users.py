@@ -3,7 +3,7 @@
 stdlib only。環境變數:SUPABASE_URL、SERVICE_KEY、DOMAIN(預設 test.local)、XLSX。
 每位員工:建 auth user(password=姓名,email_confirm)+ upsert profile(is_admin=false)。
 """
-import os, json, zipfile, urllib.request, urllib.error
+import os, json, zipfile, urllib.request, urllib.error, urllib.parse
 from xml.etree import ElementTree as ET
 
 URL = os.environ['SUPABASE_URL'].rstrip('/')
@@ -30,6 +30,19 @@ def parse_xlsx(path):
             cells.append(val)
         rows.append(cells)
     return rows
+
+
+def pick_email(emp, name):
+    # legacy 工號@domain 優先(opaque、與既有資料一致);
+    # 若該 email 已被「同工號不同名」的另一帳號占用,退到 工號.hex(姓名)@domain。
+    legacy = f"{emp.lower()}@{DOMAIN}"
+    acct = f"{emp}|{name}"
+    st, bd = req('GET', f"/rest/v1/profiles?email=eq.{urllib.parse.quote(legacy)}&select=account_id")
+    if st == 200:
+        rows = json.loads(bd)
+        if rows and rows[0].get('account_id') != acct:
+            return f"{emp.lower()}.{name.encode('utf-8').hex()}@{DOMAIN}"
+    return legacy
 
 
 def find_user_id(email):
@@ -72,7 +85,7 @@ for r in rows[1:]:
     dept = (r[di] or '').strip() if di < len(r) else ''
     if not emp or not name:
         continue
-    email = f"{emp.lower()}@{DOMAIN}"
+    email = pick_email(emp, name)
 
     st, bd = req('POST', '/auth/v1/admin/users',
                  {'email': email, 'password': name, 'email_confirm': True,
