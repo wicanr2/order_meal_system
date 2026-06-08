@@ -33,7 +33,7 @@ export default function MenuEditor({
   const removeItem = (id: string) => setItems(items.filter((i) => i.id !== id));
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
+    <div className="bg-white rounded-2xl shadow-sm p-5 border border-gray-100">
       <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
         <Store className="w-5 h-5 mr-2 text-blue-500" /> 設定當日菜單
       </h2>
@@ -47,7 +47,7 @@ export default function MenuEditor({
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">品項列表</label>
           {items.length > 0 && (
-            <div className="mb-4 space-y-2">
+            <div className="mb-4 space-y-2 max-h-56 overflow-y-auto pr-1">
               {items.map((item) => (
                 <div key={item.id} className="flex justify-between items-center bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
                   <span className="font-medium text-gray-800">{item.name}</span>
@@ -61,13 +61,13 @@ export default function MenuEditor({
               ))}
             </div>
           )}
-          <div className="flex space-x-2">
+          <div className="grid grid-cols-[1fr_6rem_2.5rem] gap-2">
             <input type="text" value={newName} onChange={(e) => setNewName(e.target.value)}
               placeholder="品項名稱" onKeyDown={(e) => e.key === 'Enter' && addItem()}
-              className="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+              className="min-w-0 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
             <input type="number" value={newPrice} onChange={(e) => setNewPrice(e.target.value)}
               placeholder="價格" onKeyDown={(e) => e.key === 'Enter' && addItem()}
-              className="w-24 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
             <button onClick={addItem} className="bg-gray-100 hover:bg-gray-200 text-gray-700 p-2 rounded-lg transition-colors">
               <Plus className="w-6 h-6" />
             </button>
@@ -81,7 +81,7 @@ export default function MenuEditor({
             className="px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none" />
           <p className="text-xs text-gray-500 mt-1">過了結單時間,員工無法再點餐、改單或取消(留空則不限制)</p>
         </div>
-        <div className="pt-4 border-t border-gray-100 flex flex-wrap justify-end gap-3">
+        <div className="pt-4 border-t border-gray-100 grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button onClick={onEndNow} className="px-4 py-2 text-orange-600 hover:bg-orange-50 rounded-lg font-medium flex items-center transition-colors">
             <Ban className="w-4 h-4 mr-1" /> 立即結束訂單
           </button>
@@ -90,7 +90,7 @@ export default function MenuEditor({
               恢復預設菜單
             </button>
           )}
-          <button onClick={() => onSave(restaurant, items, deadlineTime)} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center transition-colors">
+          <button onClick={() => onSave(restaurant, items, deadlineTime)} className="px-6 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg font-medium flex items-center justify-center transition-colors">
             <Save className="w-4 h-4 mr-2" /> 儲存發布
           </button>
         </div>

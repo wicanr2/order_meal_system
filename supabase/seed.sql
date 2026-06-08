@@ -7,7 +7,7 @@
 
 -- 1 個 admin
 insert into profiles (emp_id, name, email, is_admin) values
-  ('admin001', '系統管理員', 'admin001@test.local', true);
+  ('admin', '系統管理員', 'admin@test.local', true);
 
 -- 5 個一般員工
 insert into profiles (emp_id, name, email, department) values

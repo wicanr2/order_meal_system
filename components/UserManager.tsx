@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  Users, UserPlus, Save, X, Pencil, ShieldCheck, Ban, RotateCcw,
+  Users, UserPlus, Save, X, Pencil, ShieldCheck, Ban, RotateCcw, Trash2,
 } from 'lucide-react';
 import type { Profile } from '@/types';
 
@@ -12,6 +12,7 @@ export default function UserManager() {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [statusFilter, setStatusFilter] = useState<'active' | 'inactive' | 'all'>('active');
 
   // 新增表單
   const [nEmpId, setNEmpId] = useState('');
@@ -88,6 +89,30 @@ export default function UserManager() {
     load();
   };
 
+  const deleteUser = async (u: Profile) => {
+    if ((u.order_count ?? 0) > 0) {
+      flash('已有訂單紀錄,只能停用不能刪除', 'error');
+      return;
+    }
+    if (!window.confirm(`確定刪除 ${u.emp_id} ${u.name}? 此操作只適用於誤建且無訂單的帳號。`)) return;
+    const res = await fetch('/api/admin/users', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ acct: u.account_id }),
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok) { flash(json.error ?? '刪除失敗', 'error'); return; }
+    flash('誤建帳號已刪除');
+    load();
+  };
+
+  const filteredUsers = users.filter((u) => {
+    const active = u.active ?? true;
+    if (statusFilter === 'active') return active;
+    if (statusFilter === 'inactive') return !active;
+    return true;
+  });
+
   const inputCls =
     'w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none text-sm';
 
@@ -137,11 +162,28 @@ export default function UserManager() {
       <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
         <h2 className="text-lg font-bold text-gray-800 mb-4 flex items-center">
           <Users className="w-5 h-5 mr-2 text-blue-500" /> 員工清單
-          <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-bold">{users.length}</span>
+          <span className="ml-2 bg-gray-100 text-gray-600 text-xs px-2 py-0.5 rounded-full font-bold">{filteredUsers.length}</span>
         </h2>
+        <div className="mb-4 flex flex-wrap gap-2">
+          {([
+            ['active', '啟用'],
+            ['inactive', '停用'],
+            ['all', '全部'],
+          ] as const).map(([key, label]) => (
+            <button
+              key={key}
+              onClick={() => setStatusFilter(key)}
+              className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-colors ${statusFilter === key ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
 
         {loading ? (
           <div className="text-center py-8 text-gray-400">載入中…</div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="text-center py-8 text-gray-400">沒有符合條件的員工</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse">
@@ -152,13 +194,15 @@ export default function UserManager() {
                   <th className="pb-2 font-medium">部門</th>
                   <th className="pb-2 font-medium">角色</th>
                   <th className="pb-2 font-medium">狀態</th>
+                  <th className="pb-2 font-medium text-right">訂單</th>
                   <th className="pb-2 font-medium text-right">操作</th>
                 </tr>
               </thead>
               <tbody className="text-sm">
-                {users.map((u) => {
+                {filteredUsers.map((u) => {
                   const editing = editId === u.account_id;
                   const active = u.active ?? true;
+                  const orderCount = u.order_count ?? 0;
                   return (
                     <tr key={u.account_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="py-3 font-medium text-gray-500">{u.emp_id}</td>
@@ -191,6 +235,7 @@ export default function UserManager() {
                           ? <span className="bg-green-100 text-green-700 text-xs px-2 py-0.5 rounded-full font-bold">啟用</span>
                           : <span className="bg-gray-100 text-gray-500 text-xs px-2 py-0.5 rounded-full font-bold">停用</span>}
                       </td>
+                      <td className="py-3 text-right text-gray-500 font-medium">{orderCount}</td>
                       <td className="py-3">
                         <div className="flex items-center justify-end gap-2">
                           {editing ? (
@@ -207,6 +252,11 @@ export default function UserManager() {
                               <button onClick={() => toggleActive(u)} title={active ? '停用' : '啟用'}
                                 className={`p-1.5 rounded-lg transition-colors ${active ? 'text-gray-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-500 hover:text-green-600 hover:bg-green-50'}`}>
                                 {active ? <Ban className="w-4 h-4" /> : <RotateCcw className="w-4 h-4" />}
+                              </button>
+                              <button onClick={() => deleteUser(u)} title={orderCount > 0 ? '已有訂單,只能停用' : '刪除誤建帳號'}
+                                disabled={orderCount > 0}
+                                className="p-1.5 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-500 disabled:hover:bg-transparent">
+                                <Trash2 className="w-4 h-4" />
                               </button>
                             </>
                           )}

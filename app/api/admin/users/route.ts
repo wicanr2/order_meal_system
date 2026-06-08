@@ -35,7 +35,19 @@ export async function GET() {
     .select('account_id, emp_id, name, department, is_admin, email, active, created_at')
     .order('emp_id');
   if (error) return NextResponse.json({ error: error.message }, { status: 500 });
-  return NextResponse.json({ users: data });
+
+  const { data: orders, error: eOrders } = await admin
+    .from('orders')
+    .select('account_id');
+  if (eOrders) return NextResponse.json({ error: eOrders.message }, { status: 500 });
+  const counts = new Map<string, number>();
+  for (const order of orders ?? []) {
+    counts.set(order.account_id, (counts.get(order.account_id) ?? 0) + 1);
+  }
+
+  return NextResponse.json({
+    users: (data ?? []).map((u) => ({ ...u, order_count: counts.get(u.account_id) ?? 0 })),
+  });
 }
 
 export async function POST(req: Request) {
@@ -116,4 +128,37 @@ export async function PATCH(req: Request) {
     }
   }
   return NextResponse.json({ ok: true, account_id: renamed ? accountId(cur.emp_id, newName) : acct });
+}
+
+export async function DELETE(req: Request) {
+  if (!(await isAdminCaller())) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  const body = await req.json().catch(() => ({}));
+  const acct = String(body.acct ?? '').trim();
+  if (!acct) return NextResponse.json({ error: '缺少帳號鍵' }, { status: 400 });
+
+  const admin = createAdminClient();
+  const { data: cur, error: eCur } = await admin
+    .from('profiles').select('email').eq('account_id', acct).maybeSingle();
+  if (eCur || !cur) return NextResponse.json({ error: '找不到使用者' }, { status: 404 });
+
+  const { count, error: eCount } = await admin
+    .from('orders')
+    .select('account_id', { count: 'exact', head: true })
+    .eq('account_id', acct);
+  if (eCount) return NextResponse.json({ error: eCount.message }, { status: 500 });
+  if ((count ?? 0) > 0) {
+    return NextResponse.json({ error: '已有訂單紀錄,只能停用不能刪除' }, { status: 409 });
+  }
+
+  if (cur.email) {
+    const authUser = await findAuthUser(admin, cur.email);
+    if (authUser) {
+      const { error } = await admin.auth.admin.deleteUser(authUser.id);
+      if (error) return NextResponse.json({ error: `刪除登入帳號失敗:${error.message}` }, { status: 500 });
+    }
+  }
+
+  const { error } = await admin.from('profiles').delete().eq('account_id', acct);
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 });
+  return NextResponse.json({ ok: true });
 }
