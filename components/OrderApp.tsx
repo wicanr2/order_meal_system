@@ -9,7 +9,7 @@ import {
 } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { decodeClaims } from '@/lib/jwt';
-import { addDays, today, isToday, timeToDeadlineISO, deadlineToTime, formatDate } from '@/lib/date';
+import { addDays, today, isToday, timeToDeadlineISO, deadlineToTime, formatDate, formatDateTime } from '@/lib/date';
 import { ordersToCsv, downloadCsv } from '@/lib/csv';
 import MenuEditor from '@/components/MenuEditor';
 import OrderHistory from '@/components/OrderHistory';
@@ -285,6 +285,7 @@ export default function OrderApp() {
         { key: 'order', label: '點餐' },
         { key: 'history', label: '我的紀錄' },
       ];
+  const showDatePicker = view !== 'users';
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-10 font-sans">
@@ -325,22 +326,23 @@ export default function OrderApp() {
       )}
 
       <main className={`${view === 'menu' && me.isAdmin ? 'max-w-6xl' : 'max-w-3xl'} mx-auto px-4 py-6 space-y-6`}>
-        {/* 日期選擇器 */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between">
-          <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
-            <ChevronLeft className="w-6 h-6" />
-          </button>
-          <div className="text-center flex-1">
-            <h2 className="text-xl font-bold text-gray-800">{currentDate}</h2>
-            <button onClick={() => setCurrentDate(today())}
-              className={`text-sm mt-1 font-medium ${isToday(currentDate) ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
-              {isToday(currentDate) ? '今天' : '回到今天'}
+        {showDatePicker && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between">
+            <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
+              <ChevronLeft className="w-6 h-6" />
+            </button>
+            <div className="text-center flex-1">
+              <h2 className="text-xl font-bold text-gray-800">{currentDate}</h2>
+              <button onClick={() => setCurrentDate(today())}
+                className={`text-sm mt-1 font-medium ${isToday(currentDate) ? 'text-blue-600' : 'text-gray-500 hover:text-blue-600'}`}>
+                {isToday(currentDate) ? '今天' : '回到今天'}
+              </button>
+            </div>
+            <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
+              <ChevronRight className="w-6 h-6" />
             </button>
           </div>
-          <button onClick={() => setCurrentDate(addDays(currentDate, 1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
-            <ChevronRight className="w-6 h-6" />
-          </button>
-        </div>
+        )}
 
         {view === 'order' && (
           <div className="space-y-6">
@@ -505,7 +507,7 @@ export default function OrderApp() {
                               <td className="py-3 font-medium text-gray-800">{o.emp_name}</td>
                               <td className="py-3 text-gray-600">{o.item_name}</td>
                               <td className="py-3 text-gray-500 whitespace-nowrap">
-                                {o.created_at ? new Date(o.created_at).toLocaleTimeString('zh-TW', { hour12: false }) : '-'}
+                                {formatDateTime(o.created_at) || '-'}
                               </td>
                               <td className="py-3">
                                 {orderStatus(o) === 'cancelled'
@@ -539,10 +541,10 @@ export default function OrderApp() {
           </div>
         )}
 
-        {view === 'users' && me.isAdmin && <UserManager />}
+        {view === 'users' && me.isAdmin && <UserManager currentAcct={me.acct} />}
 
         {view === 'history' && (
-          <OrderHistory isAdmin={me.isAdmin} myAcct={me.acct} />
+          <OrderHistory isAdmin={me.isAdmin} myAcct={me.acct} currentDate={currentDate} />
         )}
       </main>
     </div>

@@ -5,18 +5,25 @@ import { decodeClaims } from '@/lib/jwt';
 import { accountId } from '@/lib/auth';
 import { pickAccountEmail } from '@/lib/account';
 import type { SupabaseClient } from '@supabase/supabase-js';
+import type { AppClaims } from '@/lib/jwt';
 
 // 使用者管理 API(admin only)。
 // 身分鍵為 account_id = 工號|姓名。寫入一律走 service-role(繞 RLS),
 // 呼叫者身分用 server session 的 is_admin claim 把關。
 // 建立員工需同時建 auth user + profile,故無法只靠前端 client。
 
-async function isAdminCaller(): Promise<boolean> {
+async function getAdminCaller(): Promise<AppClaims | null> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser(); // 驗 token 有效
-  if (!user) return false;
+  if (!user) return null;
   const { data: { session } } = await supabase.auth.getSession();
-  return !!(session && decodeClaims(session.access_token).is_admin);
+  if (!session) return null;
+  const claims = decodeClaims(session.access_token);
+  return claims.is_admin ? claims : null;
+}
+
+async function isAdminCaller(): Promise<boolean> {
+  return !!(await getAdminCaller());
 }
 
 // 員工規模小,單頁 listUsers 足夠以 email 反查 auth user
@@ -131,10 +138,14 @@ export async function PATCH(req: Request) {
 }
 
 export async function DELETE(req: Request) {
-  if (!(await isAdminCaller())) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
+  const caller = await getAdminCaller();
+  if (!caller) return NextResponse.json({ error: 'forbidden' }, { status: 403 });
   const body = await req.json().catch(() => ({}));
   const acct = String(body.acct ?? '').trim();
   if (!acct) return NextResponse.json({ error: '缺少帳號鍵' }, { status: 400 });
+  if (caller.acct === acct) {
+    return NextResponse.json({ error: '不能刪除目前登入中的管理員帳號' }, { status: 409 });
+  }
 
   const admin = createAdminClient();
   const { data: cur, error: eCur } = await admin

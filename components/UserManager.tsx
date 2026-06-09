@@ -6,9 +6,13 @@ import {
 } from 'lucide-react';
 import type { Profile } from '@/types';
 
+interface Props {
+  currentAcct: string;
+}
+
 // 使用者管理(admin only)。無密碼模式:員工以「工號 + 中文姓名」登入,
 // 姓名即登入憑證,故不設密碼欄;改名等同改憑證。寫入經 /api/admin/users。
-export default function UserManager() {
+export default function UserManager({ currentAcct }: Props) {
   const [users, setUsers] = useState<Profile[]>([]);
   const [loading, setLoading] = useState(true);
   const [msg, setMsg] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
@@ -90,6 +94,10 @@ export default function UserManager() {
   };
 
   const deleteUser = async (u: Profile) => {
+    if (u.account_id === currentAcct) {
+      flash('不能刪除目前登入中的管理員帳號', 'error');
+      return;
+    }
     if ((u.order_count ?? 0) > 0) {
       flash('已有訂單紀錄,只能停用不能刪除', 'error');
       return;
@@ -203,6 +211,13 @@ export default function UserManager() {
                   const editing = editId === u.account_id;
                   const active = u.active ?? true;
                   const orderCount = u.order_count ?? 0;
+                  const isSelf = u.account_id === currentAcct;
+                  const deleteDisabled = isSelf || orderCount > 0;
+                  const deleteTitle = isSelf
+                    ? '不能刪除目前登入帳號'
+                    : orderCount > 0
+                      ? '該使用者有訂單不能刪除'
+                      : '刪除誤建帳號';
                   return (
                     <tr key={u.account_id} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                       <td className="py-3 font-medium text-gray-500">{u.emp_id}</td>
@@ -253,11 +268,13 @@ export default function UserManager() {
                                 className={`p-1.5 rounded-lg transition-colors ${active ? 'text-gray-500 hover:text-red-600 hover:bg-red-50' : 'text-gray-500 hover:text-green-600 hover:bg-green-50'}`}>
                                 {active ? <Ban className="w-4 h-4" /> : <RotateCcw className="w-4 h-4" />}
                               </button>
-                              <button onClick={() => deleteUser(u)} title={orderCount > 0 ? '已有訂單,只能停用' : '刪除誤建帳號'}
-                                disabled={orderCount > 0}
-                                className="p-1.5 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-500 disabled:hover:bg-transparent">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
+                              <span title={deleteTitle} className="inline-flex">
+                                <button onClick={() => deleteUser(u)}
+                                  disabled={deleteDisabled}
+                                  className="p-1.5 text-gray-500 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-30 disabled:cursor-not-allowed disabled:hover:text-gray-500 disabled:hover:bg-transparent">
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              </span>
                             </>
                           )}
                         </div>

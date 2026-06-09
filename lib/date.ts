@@ -6,6 +6,16 @@ export function formatDate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+export function formatDateTime(iso?: string | null): string {
+  if (!iso) return '';
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '';
+  const hours = String(date.getHours()).padStart(2, '0');
+  const minutes = String(date.getMinutes()).padStart(2, '0');
+  const seconds = String(date.getSeconds()).padStart(2, '0');
+  return `${formatDate(date)} ${hours}:${minutes}:${seconds}`;
+}
+
 // 在某 YYYY-MM-DD 上加減天數,回傳新的 YYYY-MM-DD
 export function addDays(dateStr: string, days: number): string {
   const d = new Date(dateStr);

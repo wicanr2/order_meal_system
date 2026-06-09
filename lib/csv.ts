@@ -1,4 +1,5 @@
 // CSV 匯出純函數 — 從原型 handleExportCSV 抽出(可單元測試)
+import { formatDateTime } from '@/lib/date';
 
 export interface OrderRow {
   date?: string;
@@ -27,9 +28,7 @@ export function ordersToCsv(orders: OrderRow[]): string {
     '取消者',
   ];
   const rows = orders.map((o) => {
-    const time = o.createdAt
-      ? new Date(o.createdAt).toLocaleTimeString('zh-TW', { hour12: false })
-      : '';
+    const time = formatDateTime(o.createdAt);
     const cancelledTime = o.cancelledAt
       ? new Date(o.cancelledAt).toLocaleString('zh-TW', { hour12: false })
       : '';

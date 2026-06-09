@@ -3,16 +3,18 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import { History, Receipt, CalendarDays } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { formatDateTime } from '@/lib/date';
 import type { OrderRecord, Profile } from '@/types';
 
 interface Props {
   isAdmin: boolean;
   myAcct: string;   // account_id = 工號|姓名
+  currentDate: string;
 }
 
 // 使用者紀錄:員工看自己的歷史訂單;admin 可選特定員工或全員。
 // 資料層走一般 client,RLS(orders_self_rw / orders_admin_read)負責授權。
-export default function OrderHistory({ isAdmin, myAcct }: Props) {
+export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<OrderRecord[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
@@ -31,9 +33,11 @@ export default function OrderHistory({ isAdmin, myAcct }: Props) {
   }, [isAdmin, supabase]);
 
   const load = useCallback(async () => {
+    setLoading(true);
     let q = supabase
       .from('orders')
       .select('id, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
+      .eq('date', currentDate)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
     if (isAdmin) {
@@ -55,7 +59,7 @@ export default function OrderHistory({ isAdmin, myAcct }: Props) {
     const { data } = await q;
     setRows((data as unknown as OrderRecord[]) ?? []);
     setLoading(false);
-  }, [supabase, isAdmin, filterAcct, myAcct, staff, staffStatus]);
+  }, [supabase, isAdmin, filterAcct, myAcct, staff, staffStatus, currentDate]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -72,15 +76,18 @@ export default function OrderHistory({ isAdmin, myAcct }: Props) {
         <div className="flex items-center gap-3">
           {isAdmin && (
             <>
-              <select
-                value={staffStatus}
-                onChange={(e) => { setStaffStatus(e.target.value as 'active' | 'inactive' | 'all'); setFilterAcct('ALL'); }}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-              >
-                <option value="active">啟用員工</option>
-                <option value="inactive">停用員工</option>
-                <option value="all">全部員工</option>
-              </select>
+              <label className="flex items-center gap-2 text-sm text-gray-500">
+                <span className="whitespace-nowrap">帳號狀態:</span>
+                <select
+                  value={staffStatus}
+                  onChange={(e) => { setStaffStatus(e.target.value as 'active' | 'inactive' | 'all'); setFilterAcct('ALL'); }}
+                  className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="active">啟用</option>
+                  <option value="inactive">停用</option>
+                  <option value="all">全部</option>
+                </select>
+              </label>
               <select
                 value={filterAcct}
                 onChange={(e) => setFilterAcct(e.target.value)}
@@ -135,7 +142,7 @@ export default function OrderHistory({ isAdmin, myAcct }: Props) {
                   {isAdmin && <td className="py-3 font-medium text-gray-800">{o.emp_name}</td>}
                   <td className="py-3 text-gray-600">{o.item_name}</td>
                   <td className="py-3 text-gray-500 whitespace-nowrap">
-                    {o.created_at ? new Date(o.created_at).toLocaleTimeString('zh-TW', { hour12: false }) : '-'}
+                    {formatDateTime(o.created_at) || '-'}
                   </td>
                   <td className="py-3">
                     {(o.status ?? 'active') === 'cancelled'
