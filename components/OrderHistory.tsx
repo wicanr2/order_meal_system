@@ -10,7 +10,7 @@ interface Props {
   myAcct: string;   // account_id = 工號|姓名
 }
 
-// 使用者歷程:員工看自己的歷史訂單;admin 可選特定員工或全員。
+// 使用者紀錄:員工看自己的歷史訂單;admin 可選特定員工或全員。
 // 資料層走一般 client,RLS(orders_self_rw / orders_admin_read)負責授權。
 export default function OrderHistory({ isAdmin, myAcct }: Props) {
   const supabase = useMemo(() => createClient(), []);
@@ -67,7 +67,7 @@ export default function OrderHistory({ isAdmin, myAcct }: Props) {
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-lg font-bold text-gray-800 flex items-center">
           <History className="w-5 h-5 mr-2 text-blue-500" />
-          {isAdmin ? '訂餐歷程' : '我的訂餐歷程'}
+          {isAdmin ? '訂餐紀錄' : '我的訂餐紀錄'}
         </h2>
         <div className="flex items-center gap-3">
           {isAdmin && (

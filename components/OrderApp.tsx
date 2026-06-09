@@ -279,11 +279,11 @@ export default function OrderApp() {
         { key: 'order', label: '點餐' },
         { key: 'menu', label: '菜單' },
         { key: 'users', label: '使用者' },
-        { key: 'history', label: '歷程' },
+        { key: 'history', label: '紀錄' },
       ]
     : [
         { key: 'order', label: '點餐' },
-        { key: 'history', label: '我的歷程' },
+        { key: 'history', label: '我的紀錄' },
       ];
 
   return (
