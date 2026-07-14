@@ -114,7 +114,7 @@ export default function OrderApp() {
     const [{ data: menu }, { data: ords }] = await Promise.all([
       supabase.from('daily_menus').select('restaurant, items, deadline').eq('date', date).maybeSingle(),
       supabase.from('orders')
-        .select('id, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
+        .select('id, order_serial, order_sequence, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
         .eq('date', date).order('created_at'),
     ]);
     setDailyMenu(menu ? { restaurant: menu.restaurant, items: menu.items as MenuItem[], deadline: menu.deadline } : null);
@@ -238,7 +238,7 @@ export default function OrderApp() {
     const range = reportRange(currentDate, reportMode);
     const { data, error } = await supabase
       .from('orders')
-      .select('id, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
+      .select('id, order_serial, order_sequence, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
       .gte('date', range.from)
       .lte('date', range.to)
       .order('date', { ascending: true })

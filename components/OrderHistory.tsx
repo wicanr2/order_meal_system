@@ -36,7 +36,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
     setLoading(true);
     let q = supabase
       .from('orders')
-      .select('id, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
+      .select('id, order_serial, order_sequence, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
       .eq('date', currentDate)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
