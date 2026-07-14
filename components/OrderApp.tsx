@@ -114,7 +114,7 @@ export default function OrderApp() {
     const [{ data: menu }, { data: ords }] = await Promise.all([
       supabase.from('daily_menus').select('restaurant, items, deadline').eq('date', date).maybeSingle(),
       supabase.from('orders')
-        .select('id, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
+        .select('id, order_serial, order_sequence, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
         .eq('date', date).order('created_at'),
     ]);
     setDailyMenu(menu ? { restaurant: menu.restaurant, items: menu.items as MenuItem[], deadline: menu.deadline } : null);
@@ -238,7 +238,7 @@ export default function OrderApp() {
     const range = reportRange(currentDate, reportMode);
     const { data, error } = await supabase
       .from('orders')
-      .select('id, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
+      .select('id, order_serial, order_sequence, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
       .gte('date', range.from)
       .lte('date', range.to)
       .order('date', { ascending: true })
@@ -249,6 +249,7 @@ export default function OrderApp() {
     const csv = ordersToCsv(reportRows.map((o) => ({
       date: reportMode === 'day' ? undefined : o.date,
       empId: o.emp_id, name: o.emp_name,
+      orderSerial: o.order_serial,
       itemName: o.item_name, price: o.price, status: orderStatus(o),
       cancelledAt: o.cancelled_at, cancelledBy: o.cancelled_by, createdAt: o.created_at,
     })));
@@ -491,6 +492,7 @@ export default function OrderApp() {
                       <table className="w-full text-left border-collapse">
                         <thead className="sticky top-0 bg-white z-10">
                           <tr className="border-b border-gray-200 text-gray-500 text-sm">
+                            <th className="pb-2 font-medium">序號</th>
                             <th className="pb-2 font-medium">工號</th>
                             <th className="pb-2 font-medium">姓名</th>
                             <th className="pb-2 font-medium">品項</th>
@@ -503,6 +505,7 @@ export default function OrderApp() {
                         <tbody className="text-sm">
                           {orders.map((o) => (
                             <tr key={o.id ?? `${o.account_id}_${o.date}_${o.created_at ?? o.item_id}_${o.status ?? 'active'}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                              <td className="py-3 font-medium text-gray-600 whitespace-nowrap">{o.order_serial}</td>
                               <td className="py-3 font-medium text-gray-500">{o.emp_id}</td>
                               <td className="py-3 font-medium text-gray-800">{o.emp_name}</td>
                               <td className="py-3 text-gray-600">{o.item_name}</td>

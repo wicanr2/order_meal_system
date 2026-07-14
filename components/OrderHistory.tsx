@@ -36,7 +36,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
     setLoading(true);
     let q = supabase
       .from('orders')
-      .select('id, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
+      .select('id, order_serial, order_sequence, account_id, emp_id, emp_name, date, item_id, item_name, price, status, cancelled_at, cancelled_by, cancellation_history, created_at')
       .eq('date', currentDate)
       .order('date', { ascending: false })
       .order('created_at', { ascending: false });
@@ -123,6 +123,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-200 text-gray-500 text-sm">
+                <th className="pb-2 font-medium">序號</th>
                 <th className="pb-2 font-medium">
                   <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1" />日期</span>
                 </th>
@@ -137,6 +138,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
             <tbody className="text-sm">
               {rows.map((o) => (
                 <tr key={o.id ?? `${o.account_id}_${o.date}_${o.created_at ?? o.item_id}_${o.status ?? 'active'}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                  <td className="py-3 font-medium text-gray-600 whitespace-nowrap">{o.order_serial}</td>
                   <td className="py-3 font-medium text-gray-700">{o.date}</td>
                   {isAdmin && <td className="py-3 font-medium text-gray-500">{o.emp_id}</td>}
                   {isAdmin && <td className="py-3 font-medium text-gray-800">{o.emp_name}</td>}

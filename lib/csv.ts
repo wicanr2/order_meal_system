@@ -3,6 +3,7 @@ import { formatDateTime } from '@/lib/date';
 
 export interface OrderRow {
   date?: string;
+  orderSerial?: string | null;
   empId: string;
   name: string;
   itemName: string;
@@ -18,6 +19,7 @@ export function ordersToCsv(orders: OrderRow[]): string {
   const includeDate = orders.some((o) => o.date);
   const headers = [
     ...(includeDate ? ['日期'] : []),
+    '序號',
     '工號',
     '姓名',
     '品項',
@@ -34,6 +36,7 @@ export function ordersToCsv(orders: OrderRow[]): string {
       : '';
     return [
       ...(includeDate ? [o.date ?? ''] : []),
+      o.orderSerial ?? '',
       o.empId,
       o.name,
       o.itemName,
