@@ -13,8 +13,8 @@ export interface Menu {
 
 export interface OrderRecord {
   id?: string;
-  order_serial: string;
-  order_sequence: number;
+  order_serial?: string | null;
+  order_sequence?: number | null;
   account_id: string;          // 擁有鍵 = 工號|姓名
   emp_id: string;              // 工號(顯示快照)
   emp_name: string;            // 姓名(顯示快照,免 join profiles)
