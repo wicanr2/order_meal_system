@@ -120,17 +120,17 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
         </div>
       ) : (
         <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
+          <table className="min-w-[860px] w-full text-left border-collapse">
             <thead>
               <tr className="border-b border-gray-200 text-gray-500 text-sm">
-                <th className="pb-2 font-medium">序號</th>
+                <th className="pb-2 pr-4 font-medium">序號</th>
                 <th className="pb-2 font-medium">
                   <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1" />日期</span>
                 </th>
-                {isAdmin && <th className="pb-2 font-medium">工號</th>}
-                {isAdmin && <th className="pb-2 font-medium">姓名</th>}
-                <th className="pb-2 font-medium">品項</th>
-                <th className="pb-2 font-medium">下訂時間</th>
+                {isAdmin && <th className="pb-2 px-3 font-medium">工號</th>}
+                {isAdmin && <th className="pb-2 px-3 font-medium">姓名</th>}
+                <th className="pb-2 px-3 font-medium">品項</th>
+                <th className="pb-2 px-3 font-medium">下訂時間</th>
                 <th className="pb-2 font-medium">狀態</th>
                 <th className="pb-2 font-medium text-right">金額</th>
               </tr>
@@ -138,12 +138,12 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
             <tbody className="text-sm">
               {rows.map((o) => (
                 <tr key={o.id ?? `${o.account_id}_${o.date}_${o.created_at ?? o.item_id}_${o.status ?? 'active'}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
-                  <td className="py-3 font-medium text-gray-600 whitespace-nowrap">{o.order_serial ?? '-'}</td>
+                  <td className="py-3 pr-4 font-medium text-gray-600 whitespace-nowrap">{o.order_serial ?? '-'}</td>
                   <td className="py-3 font-medium text-gray-700">{o.date}</td>
-                  {isAdmin && <td className="py-3 font-medium text-gray-500">{o.emp_id}</td>}
-                  {isAdmin && <td className="py-3 font-medium text-gray-800">{o.emp_name}</td>}
-                  <td className="py-3 text-gray-600">{o.item_name}</td>
-                  <td className="py-3 text-gray-500 whitespace-nowrap">
+                  {isAdmin && <td className="py-3 px-3 font-medium text-gray-500">{o.emp_id}</td>}
+                  {isAdmin && <td className="py-3 px-3 font-medium text-gray-800">{o.emp_name}</td>}
+                  <td className="py-3 px-3 text-gray-600">{o.item_name}</td>
+                  <td className="py-3 px-3 text-gray-500 whitespace-nowrap">
                     {formatDateTime(o.created_at) || '-'}
                   </td>
                   <td className="py-3">

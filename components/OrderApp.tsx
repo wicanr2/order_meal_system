@@ -274,6 +274,7 @@ export default function OrderApp() {
   }
 
   const totalAmount = activeOrders.reduce((s, o) => s + o.price, 0);
+  const wideLayout = (view === 'menu' && me.isAdmin) || view === 'history';
 
   const tabs: { key: View; label: string }[] = me.isAdmin
     ? [
@@ -292,7 +293,7 @@ export default function OrderApp() {
     <div className="min-h-screen bg-gray-50 pb-20 md:pb-10 font-sans">
       {/* 頂部導航 */}
       <header className="bg-white shadow-sm sticky top-0 z-10">
-        <div className="max-w-3xl mx-auto px-4 h-16 flex items-center justify-between">
+        <div className={`${wideLayout ? 'max-w-6xl' : 'max-w-3xl'} mx-auto px-4 h-16 flex items-center justify-between`}>
           <div className="flex items-center space-x-2">
             <Utensils className="text-blue-600 w-6 h-6" />
             <span className="font-bold text-gray-800 text-lg">訂餐系統</span>
@@ -326,7 +327,7 @@ export default function OrderApp() {
         </div>
       )}
 
-      <main className={`${view === 'menu' && me.isAdmin ? 'max-w-6xl' : 'max-w-3xl'} mx-auto px-4 py-6 space-y-6`}>
+      <main className={`${wideLayout ? 'max-w-6xl' : 'max-w-3xl'} mx-auto px-4 py-6 space-y-6`}>
         {showDatePicker && (
           <div className="bg-white rounded-2xl shadow-sm p-4 flex items-center justify-between">
             <button onClick={() => setCurrentDate(addDays(currentDate, -1))} className="p-2 hover:bg-gray-100 rounded-full transition-colors text-gray-600">
