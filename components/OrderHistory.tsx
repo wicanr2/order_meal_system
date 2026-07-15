@@ -8,17 +8,16 @@ import type { OrderRecord, Profile } from '@/types';
 
 interface Props {
   isAdmin: boolean;
-  myAcct: string;   // account_id = 工號|姓名
   currentDate: string;
 }
 
-// 使用者紀錄:員工看自己的歷史訂單;admin 可選特定員工或全員。
-// 資料層走一般 client,RLS(orders_self_rw / orders_admin_read)負責授權。
-export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
+// 使用者紀錄:所有員工可看當日全體訂餐紀錄;admin 可選特定員工或全員。
+// 資料層走一般 client,RLS 控制讀取與寫入權限。
+export default function OrderHistory({ isAdmin, currentDate }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<OrderRecord[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
-  const [filterAcct, setFilterAcct] = useState<string>(isAdmin ? 'ALL' : myAcct);
+  const [filterAcct, setFilterAcct] = useState<string>('ALL');
   const [staffStatus, setStaffStatus] = useState<'active' | 'inactive' | 'all'>('active');
   const [loading, setLoading] = useState(true);
 
@@ -53,13 +52,11 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
         }
         q = q.in('account_id', accts);
       }
-    } else {
-      q = q.eq('account_id', myAcct);
     }
     const { data } = await q;
     setRows((data as unknown as OrderRecord[]) ?? []);
     setLoading(false);
-  }, [supabase, isAdmin, filterAcct, myAcct, staff, staffStatus, currentDate]);
+  }, [supabase, isAdmin, filterAcct, staff, staffStatus, currentDate]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
@@ -71,7 +68,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
       <div className="flex justify-between items-end mb-6">
         <h2 className="text-lg font-bold text-gray-800 flex items-center">
           <History className="w-5 h-5 mr-2 text-blue-500" />
-          {isAdmin ? '訂餐紀錄' : '我的訂餐紀錄'}
+          訂餐紀錄
         </h2>
         <div className="flex items-center gap-3">
           {isAdmin && (
