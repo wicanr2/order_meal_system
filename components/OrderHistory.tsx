@@ -20,6 +20,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
   const [staff, setStaff] = useState<Profile[]>([]);
   const [filterAcct, setFilterAcct] = useState<string>('ALL');
   const [staffStatus, setStaffStatus] = useState<'active' | 'inactive' | 'all'>('active');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'cancelled'>('all');
   const [loading, setLoading] = useState(true);
 
   // admin:載入員工清單供篩選
@@ -62,7 +63,11 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
-  const total = rows.reduce((s, o) => s + ((o.status ?? 'active') === 'active' ? o.price : 0), 0);
+  const filteredRows = useMemo(
+    () => rows.filter((o) => statusFilter === 'all' || (o.status ?? 'active') === statusFilter),
+    [rows, statusFilter],
+  );
+  const total = filteredRows.reduce((s, o) => s + ((o.status ?? 'active') === 'active' ? o.price : 0), 0);
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
@@ -72,6 +77,18 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
           訂餐紀錄
         </h2>
         <div className="flex items-center gap-3">
+          <label className="flex items-center gap-2 text-sm text-gray-500">
+            <span className="whitespace-nowrap">狀態:</span>
+            <select
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'cancelled')}
+              className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+            >
+              <option value="all">全部</option>
+              <option value="active">有效</option>
+              <option value="cancelled">已取消</option>
+            </select>
+          </label>
           {isAdmin && (
             <>
               <label className="flex items-center gap-2 text-sm text-gray-500">
@@ -111,10 +128,10 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
 
       {loading ? (
         <div className="text-center py-8 text-gray-400">載入中…</div>
-      ) : rows.length === 0 ? (
+      ) : filteredRows.length === 0 ? (
         <div className="text-center py-8 text-gray-400">
           <Receipt className="w-12 h-12 mx-auto mb-2 opacity-50" />
-          <p>沒有歷史訂單</p>
+          <p>沒有符合條件的訂單</p>
         </div>
       ) : (
         <div className="overflow-x-auto">
@@ -134,7 +151,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
               </tr>
             </thead>
             <tbody className="text-sm">
-              {rows.map((o) => {
+              {filteredRows.map((o) => {
                 const isMine = o.account_id === myAcct;
                 return (
                 <tr
