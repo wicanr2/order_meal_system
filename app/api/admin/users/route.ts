@@ -32,6 +32,31 @@ async function findAuthUser(admin: SupabaseClient, email: string) {
   return data.users.find((u) => u.email?.toLowerCase() === email.toLowerCase()) ?? null;
 }
 
+async function ensureAuthUser(
+  admin: SupabaseClient,
+  email: string,
+  empId: string,
+  name: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const existing = await findAuthUser(admin, email);
+  if (existing) {
+    const { error } = await admin.auth.admin.updateUserById(existing.id, {
+      password: name,
+      email_confirm: true,
+      user_metadata: { ...existing.user_metadata, emp_id: empId, name },
+    });
+    return error ? { ok: false, error: error.message } : { ok: true };
+  }
+
+  const { error } = await admin.auth.admin.createUser({
+    email,
+    password: name,
+    email_confirm: true,
+    user_metadata: { emp_id: empId, name },
+  });
+  return error ? { ok: false, error: error.message } : { ok: true };
+}
+
 const BAN_FOREVER = '876000h'; // ~100 年,等同停用登入
 
 export async function GET() {
@@ -66,33 +91,38 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: '工號、姓名為必填' }, { status: 400 });
   }
   const admin = createAdminClient();
-  const email = await pickAccountEmail(admin, empId, name); // 唯一 email(legacy 優先,撞名退 hex)
+  const acct = accountId(empId, name);
+  const { data: existing, error: eExisting } = await admin
+    .from('profiles')
+    .select('email')
+    .eq('account_id', acct)
+    .maybeSingle();
+  if (eExisting) return NextResponse.json({ error: eExisting.message }, { status: 400 });
 
-  // 1) 建 auth user(password=姓名,無密碼模式)
-  const { data: created, error: e1 } = await admin.auth.admin.createUser({
-    email,
-    password: name,
-    email_confirm: true,
-    user_metadata: { emp_id: empId, name },
-  });
-  if (e1 || !created?.user) {
-    return NextResponse.json({ error: `建立帳號失敗:${e1?.message ?? '未知錯誤'}` }, { status: 400 });
-  }
-
-  // 2) 建 profile;account_id 由 trigger 推導,email 用上面挑的;失敗則回滾 auth user
-  const { error: e2 } = await admin.from('profiles').insert({
+  const email = existing?.email ?? await pickAccountEmail(admin, empId, name);
+  const profile = {
     emp_id: empId,
     name,
     department: body.department || null,
     is_admin: !!body.isAdmin,
     email,
     active: true,
-  });
+    updated_at: new Date().toISOString(),
+  };
+
+  const { error: e2 } = await admin
+    .from('profiles')
+    .upsert(profile, { onConflict: 'account_id' });
   if (e2) {
-    await admin.auth.admin.deleteUser(created.user.id);
     return NextResponse.json({ error: `建立檔案失敗:${e2.message}` }, { status: 400 });
   }
-  return NextResponse.json({ ok: true });
+
+  const auth = await ensureAuthUser(admin, email, empId, name);
+  if (!auth.ok) {
+    return NextResponse.json({ error: `建立登入帳號失敗:${auth.error}` }, { status: 400 });
+  }
+
+  return NextResponse.json({ ok: true, updated: !!existing });
 }
 
 export async function PATCH(req: Request) {

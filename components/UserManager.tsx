@@ -58,7 +58,7 @@ export default function UserManager({ currentAcct }: Props) {
     const json = await res.json().catch(() => ({}));
     if (!res.ok) { flash(json.error ?? '新增失敗', 'error'); return; }
     setNEmpId(''); setNName(''); setNDept(''); setNAdmin(false);
-    flash('員工已新增');
+    flash(nAdmin ? '管理員已新增/更新' : '員工已新增/更新');
     load();
   };
 
