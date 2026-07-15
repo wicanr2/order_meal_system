@@ -20,7 +20,7 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
   const [staff, setStaff] = useState<Profile[]>([]);
   const [filterAcct, setFilterAcct] = useState<string>('ALL');
   const [staffStatus, setStaffStatus] = useState<'active' | 'inactive' | 'all'>('active');
-  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'cancelled'>('all');
+  const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'cancelled'>('active');
   const [loading, setLoading] = useState(true);
 
   // admin:載入員工清單供篩選
