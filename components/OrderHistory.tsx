@@ -68,60 +68,71 @@ export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
     [rows, statusFilter],
   );
   const total = filteredRows.reduce((s, o) => s + ((o.status ?? 'active') === 'active' ? o.price : 0), 0);
+  const activeOrderCount = rows.filter((o) => (o.status ?? 'active') === 'active').length;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-6 border border-gray-100">
-      <div className="flex justify-between items-end mb-6">
+      <div className="flex flex-col gap-4 mb-6 xl:flex-row xl:justify-between xl:items-end">
         <h2 className="text-lg font-bold text-gray-800 flex items-center">
           <History className="w-5 h-5 mr-2 text-blue-500" />
           訂餐紀錄
         </h2>
-        <div className="flex items-center gap-3">
-          <label className="flex items-center gap-2 text-sm text-gray-500">
-            <span className="whitespace-nowrap">狀態:</span>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'cancelled')}
-              className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-            >
-              <option value="all">全部</option>
-              <option value="active">有效</option>
-              <option value="cancelled">已取消</option>
-            </select>
-          </label>
-          {isAdmin && (
-            <>
-              <label className="flex items-center gap-2 text-sm text-gray-500">
-                <span className="whitespace-nowrap">帳號狀態:</span>
-                <select
-                  value={staffStatus}
-                  onChange={(e) => { setStaffStatus(e.target.value as 'active' | 'inactive' | 'all'); setFilterAcct('ALL'); }}
-                  className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
-                >
-                  <option value="active">啟用</option>
-                  <option value="inactive">停用</option>
-                  <option value="all">全部</option>
-                </select>
-              </label>
+        <div className="flex flex-col gap-3 xl:items-end">
+          <div className="flex flex-wrap items-center gap-3 xl:justify-end">
+            <label className="flex items-center gap-2 text-sm text-gray-500">
+              <span className="whitespace-nowrap">狀態:</span>
               <select
-                value={filterAcct}
-                onChange={(e) => setFilterAcct(e.target.value)}
-                className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value as 'all' | 'active' | 'cancelled')}
+                className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
               >
-                <option value="ALL">全體員工</option>
-                {staff
-                  .filter((s) => staffStatus === 'all' || (staffStatus === 'active' ? s.active ?? true : !(s.active ?? true)))
-                  .map((s) => (
-                    <option key={s.account_id} value={s.account_id}>
-                      {s.emp_id} {s.name}{(s.active ?? true) ? '' : ' (停用)'}
-                    </option>
-                  ))}
+                <option value="all">全部</option>
+                <option value="active">有效</option>
+                <option value="cancelled">已取消</option>
               </select>
-            </>
-          )}
-          <div className="text-right">
-            <p className="text-xs text-gray-500">累計金額</p>
-            <p className="text-xl font-bold text-green-600">${total}</p>
+            </label>
+            {isAdmin && (
+              <>
+                <label className="flex items-center gap-2 text-sm text-gray-500">
+                  <span className="whitespace-nowrap">帳號狀態:</span>
+                  <select
+                    value={staffStatus}
+                    onChange={(e) => { setStaffStatus(e.target.value as 'active' | 'inactive' | 'all'); setFilterAcct('ALL'); }}
+                    className="border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                  >
+                    <option value="active">啟用</option>
+                    <option value="inactive">停用</option>
+                    <option value="all">全部</option>
+                  </select>
+                </label>
+                <select
+                  value={filterAcct}
+                  onChange={(e) => setFilterAcct(e.target.value)}
+                  className="text-sm border border-gray-300 rounded-lg px-3 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none"
+                >
+                  <option value="ALL">全體員工</option>
+                  {staff
+                    .filter((s) => staffStatus === 'all' || (staffStatus === 'active' ? s.active ?? true : !(s.active ?? true)))
+                    .map((s) => (
+                      <option key={s.account_id} value={s.account_id}>
+                        {s.emp_id} {s.name}{(s.active ?? true) ? '' : ' (停用)'}
+                      </option>
+                    ))}
+                </select>
+              </>
+            )}
+          </div>
+          <div className="flex items-start gap-6 xl:justify-end">
+            {isAdmin && (
+              <div className="text-right">
+                <p className="text-xs text-gray-500">有效總人數</p>
+                <p className="text-xl font-bold text-blue-600">{activeOrderCount} 人</p>
+              </div>
+            )}
+            <div className="text-right">
+              <p className="text-xs text-gray-500">累計金額</p>
+              <p className="text-xl font-bold text-green-600">${total}</p>
+            </div>
           </div>
         </div>
       </div>

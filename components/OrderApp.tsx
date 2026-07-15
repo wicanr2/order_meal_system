@@ -274,6 +274,7 @@ export default function OrderApp() {
   }
 
   const totalAmount = activeOrders.reduce((s, o) => s + o.price, 0);
+  const activeOrderCount = activeOrders.length;
   const pageMaxWidth = view === 'menu' && me.isAdmin ? 'max-w-7xl' : view === 'history' ? 'max-w-6xl' : 'max-w-3xl';
 
   const tabs: { key: View; label: string }[] = me.isAdmin
@@ -442,8 +443,16 @@ export default function OrderApp() {
                   <Receipt className="w-5 h-5 mr-2 text-green-500" /> 訂單統計
                 </h2>
                 <div className="sm:text-right flex flex-col sm:items-end">
-                  <p className="text-sm text-gray-500">總金額</p>
-                  <p className="text-2xl font-bold text-green-600 mb-2">${totalAmount}</p>
+                  <div className="flex items-start gap-6 mb-2 sm:justify-end">
+                    <div>
+                      <p className="text-sm text-gray-500">有效總人數</p>
+                      <p className="text-2xl font-bold text-blue-600">{activeOrderCount} 人</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500">總金額</p>
+                      <p className="text-2xl font-bold text-green-600">${totalAmount}</p>
+                    </div>
+                  </div>
                   <div className="flex items-center gap-2">
                     <select
                       value={reportMode}
