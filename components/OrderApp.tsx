@@ -548,7 +548,7 @@ export default function OrderApp() {
         {view === 'users' && me.isAdmin && <UserManager currentAcct={me.acct} />}
 
         {view === 'history' && (
-          <OrderHistory isAdmin={me.isAdmin} currentDate={currentDate} />
+          <OrderHistory isAdmin={me.isAdmin} myAcct={me.acct} currentDate={currentDate} />
         )}
       </main>
     </div>

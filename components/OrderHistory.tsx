@@ -8,12 +8,13 @@ import type { OrderRecord, Profile } from '@/types';
 
 interface Props {
   isAdmin: boolean;
+  myAcct: string;
   currentDate: string;
 }
 
 // 使用者紀錄:所有員工可看當日全體訂餐紀錄;admin 可選特定員工或全員。
 // 資料層走一般 client,RLS 控制讀取與寫入權限。
-export default function OrderHistory({ isAdmin, currentDate }: Props) {
+export default function OrderHistory({ isAdmin, myAcct, currentDate }: Props) {
   const supabase = useMemo(() => createClient(), []);
   const [rows, setRows] = useState<OrderRecord[]>([]);
   const [staff, setStaff] = useState<Profile[]>([]);
@@ -124,8 +125,8 @@ export default function OrderHistory({ isAdmin, currentDate }: Props) {
                 <th className="pb-2 font-medium">
                   <span className="flex items-center"><CalendarDays className="w-4 h-4 mr-1" />日期</span>
                 </th>
-                {isAdmin && <th className="pb-2 px-3 font-medium">工號</th>}
-                {isAdmin && <th className="pb-2 px-3 font-medium">姓名</th>}
+                <th className="pb-2 px-3 font-medium">工號</th>
+                <th className="pb-2 px-3 font-medium">姓名</th>
                 <th className="pb-2 px-3 font-medium">品項</th>
                 <th className="pb-2 px-3 font-medium">下訂時間</th>
                 <th className="pb-2 font-medium">狀態</th>
@@ -133,12 +134,22 @@ export default function OrderHistory({ isAdmin, currentDate }: Props) {
               </tr>
             </thead>
             <tbody className="text-sm">
-              {rows.map((o) => (
-                <tr key={o.id ?? `${o.account_id}_${o.date}_${o.created_at ?? o.item_id}_${o.status ?? 'active'}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+              {rows.map((o) => {
+                const isMine = o.account_id === myAcct;
+                return (
+                <tr
+                  key={o.id ?? `${o.account_id}_${o.date}_${o.created_at ?? o.item_id}_${o.status ?? 'active'}`}
+                  className={`border-b border-gray-100 last:border-0 ${isMine ? 'bg-blue-50/70 border-l-4 border-l-blue-500' : 'hover:bg-gray-50'}`}
+                >
                   <td className="py-3 pr-4 font-medium text-gray-600 whitespace-nowrap">{o.order_serial ?? '-'}</td>
                   <td className="py-3 font-medium text-gray-700">{o.date}</td>
-                  {isAdmin && <td className="py-3 px-3 font-medium text-gray-500">{o.emp_id}</td>}
-                  {isAdmin && <td className="py-3 px-3 font-medium text-gray-800">{o.emp_name}</td>}
+                  <td className="py-3 px-3 font-medium text-gray-500">{o.emp_id}</td>
+                  <td className="py-3 px-3 font-medium text-gray-800">
+                    <span className="inline-flex items-center gap-2">
+                      {o.emp_name}
+                      {isMine && <span className="bg-blue-600 text-white text-[11px] px-1.5 py-0.5 rounded-full font-bold">本人</span>}
+                    </span>
+                  </td>
                   <td className="py-3 px-3 text-gray-600">{o.item_name}</td>
                   <td className="py-3 px-3 text-gray-500 whitespace-nowrap">
                     {formatDateTime(o.created_at) || '-'}
@@ -150,7 +161,8 @@ export default function OrderHistory({ isAdmin, currentDate }: Props) {
                   </td>
                   <td className={`py-3 text-right font-medium ${(o.status ?? 'active') === 'cancelled' ? 'text-gray-400 line-through' : 'text-gray-800'}`}>${o.price}</td>
                 </tr>
-              ))}
+                );
+              })}
             </tbody>
           </table>
         </div>
