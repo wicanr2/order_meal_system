@@ -26,6 +26,7 @@ interface Me {
 // 導航分頁:員工 = order/history;admin 另含 menu/users
 type View = 'order' | 'menu' | 'users' | 'history';
 type ReportMode = 'day' | 'week' | 'month';
+type OrderStatusFilter = 'all' | 'active' | 'cancelled';
 
 function localDate(dateStr: string): Date {
   return new Date(`${dateStr}T00:00:00`);
@@ -81,6 +82,7 @@ export default function OrderApp() {
   const [dailyMenu, setDailyMenu] = useState<Menu | null>(null); // 該日自訂菜單(null=用預設)
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [reportMode, setReportMode] = useState<ReportMode>('day');
+  const [statisticsStatusFilter, setStatisticsStatusFilter] = useState<OrderStatusFilter>('active');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -142,6 +144,10 @@ export default function OrderApp() {
   const activeOrders = useMemo(
     () => orders.filter((o) => orderStatus(o) === 'active'),
     [orders],
+  );
+  const statisticsOrders = useMemo(
+    () => orders.filter((o) => statisticsStatusFilter === 'all' || orderStatus(o) === statisticsStatusFilter),
+    [orders, statisticsStatusFilter],
   );
 
   const myOrder = useMemo(
@@ -273,8 +279,16 @@ export default function OrderApp() {
     );
   }
 
-  const totalAmount = activeOrders.reduce((s, o) => s + o.price, 0);
-  const activeOrderCount = activeOrders.length;
+  const totalAmount = statisticsOrders.reduce(
+    (sum, order) => sum + (orderStatus(order) === 'active' ? order.price : 0),
+    0,
+  );
+  const statisticsOrderCount = statisticsOrders.length;
+  const statisticsCountLabel = statisticsStatusFilter === 'active'
+    ? '有效總人數'
+    : statisticsStatusFilter === 'cancelled'
+      ? '已取消人數'
+      : '訂單總人數';
   const pageMaxWidth = view === 'menu' && me.isAdmin ? 'max-w-7xl' : view === 'history' ? 'max-w-6xl' : 'max-w-3xl';
 
   const tabs: { key: View; label: string }[] = me.isAdmin
@@ -445,8 +459,8 @@ export default function OrderApp() {
                 <div className="sm:text-right flex flex-col sm:items-end">
                   <div className="flex items-start gap-6 mb-2 sm:justify-end">
                     <div>
-                      <p className="text-sm text-gray-500">有效總人數</p>
-                      <p className="text-2xl font-bold text-blue-600">{activeOrderCount} 人</p>
+                      <p className="text-sm text-gray-500">{statisticsCountLabel}</p>
+                      <p className="text-2xl font-bold text-blue-600">{statisticsOrderCount} 人</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-500">總金額</p>
@@ -454,6 +468,18 @@ export default function OrderApp() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <label className="flex items-center gap-1 text-sm text-gray-500">
+                      <span className="whitespace-nowrap">狀態:</span>
+                      <select
+                        value={statisticsStatusFilter}
+                        onChange={(e) => setStatisticsStatusFilter(e.target.value as OrderStatusFilter)}
+                        className="text-sm border border-gray-300 rounded-lg px-2 py-1.5 bg-white text-gray-700 focus:ring-2 focus:ring-green-500 focus:border-green-500 outline-none"
+                      >
+                        <option value="all">全部</option>
+                        <option value="active">有效</option>
+                        <option value="cancelled">已取消</option>
+                      </select>
+                    </label>
                     <select
                       value={reportMode}
                       onChange={(e) => setReportMode(e.target.value as ReportMode)}
@@ -471,17 +497,17 @@ export default function OrderApp() {
                 </div>
               </div>
 
-              {orders.length === 0 ? (
+              {statisticsOrders.length === 0 ? (
                 <div className="text-center py-8 text-gray-400">
                   <Users className="w-12 h-12 mx-auto mb-2 opacity-50" />
-                  <p>目前還沒有人點餐喔</p>
+                  <p>{orders.length === 0 ? '目前還沒有人點餐喔' : '沒有符合狀態的訂單'}</p>
                 </div>
               ) : (
                 <div className="space-y-6">
                   <div>
                     <h3 className="text-sm font-semibold text-gray-500 mb-3 uppercase tracking-wider">品項總計</h3>
                     <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
-                      {Object.entries(activeOrders.reduce<Record<string, { count: number; price: number }>>((acc, o) => {
+                      {Object.entries(statisticsOrders.reduce<Record<string, { count: number; price: number }>>((acc, o) => {
                         if (!acc[o.item_name]) acc[o.item_name] = { count: 0, price: o.price };
                         acc[o.item_name].count += 1;
                         return acc;
@@ -513,7 +539,7 @@ export default function OrderApp() {
                           </tr>
                         </thead>
                         <tbody className="text-sm">
-                          {orders.map((o) => (
+                          {statisticsOrders.map((o) => (
                             <tr key={o.id ?? `${o.account_id}_${o.date}_${o.created_at ?? o.item_id}_${o.status ?? 'active'}`} className="border-b border-gray-100 last:border-0 hover:bg-gray-50">
                               <td className="py-3 font-medium text-gray-600 whitespace-nowrap">{o.order_serial ?? '-'}</td>
                               <td className="py-3 font-medium text-gray-500">{o.emp_id}</td>
