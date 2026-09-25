@@ -44,9 +44,11 @@ R7、R8 的依據是 Vercel 官方文件，2026-09-25 查閱：
 
 ### 4.1 需求
 
-- F1：管理視角的統計區塊新增「匯出全部」按鈕，放在現有「匯出 CSV」旁邊。
+- F1：頂部導覽列常駐「匯出全部訂單」按鈕，放在頁籤右邊、登出左邊，只有 Admin 看得到。
+  admin 登入後停在點餐頁，按鈕放導覽列才能第一眼看到。按鈕是綠底白字；手機寬度只顯示圖示。
 - F2：範圍是 `orders` 表的全部日期，沒有日期參數。
-- F3：狀態沿用統計畫面現有的下拉選單（`statisticsStatusFilter`），可以選 `active`、`cancelled`、`all`，預設 `active`。
+- F3：點按鈕展開小選單，用單選項目選狀態：只含有效訂單（`active`，預設）、只含已取消（`cancelled`）、全部（`all`）。
+  選好後按「下載 CSV」。狀態選擇和統計區的篩選互相獨立。點選單外面或按 Esc 會關閉選單。
 - F4：只有 Admin 可以呼叫，非 Admin 一律回 403。
 - F5：沒有資料時回 200，檔案只有表頭，前端提示「沒有符合條件的訂單」。
 
@@ -149,7 +151,7 @@ GET /api/admin/orders/export?status=active|cancelled|all
 - 成功時先取得 `blob`，數資料列數（行數扣掉表頭），和 `X-Export-Total` 比對。
   不相等就不下載，並顯示「匯出不完整，請重試」。
 - 串流中斷時 `res.blob()` 會 reject，要 catch 起來並顯示「匯出失敗」，不下載。
-- 下載期間按鈕 disabled，並顯示「匯出中」。
+- 下載期間「下載 CSV」按鈕 disabled，並顯示「匯出中」。成功後關閉選單。
 - `downloadCsv()` 改成字串和 Blob 都能接受。
 
 CSV 的格子裡可能有換行，所以行數不一定等於列數。
@@ -164,7 +166,8 @@ CSV 的格子裡可能有換行，所以行數不一定等於列數。
 | `app/api/admin/users/route.ts` | 改用 `lib/admin-auth.ts` |
 | `app/api/admin/orders/export/route.ts` | 新增 |
 | `lib/csv.ts` | 抽出跳脫字元與組一行 CSV 的共用函式；`ordersToCsv()` 對外行為不變；`downloadCsv()` 可以接受 Blob |
-| `components/OrderApp.tsx` | 新增「匯出全部」按鈕、loading 狀態、筆數二次核對 |
+| `components/ExportAllButton.tsx` | 新增：導覽列按鈕、狀態選單、呼叫 API、筆數二次核對 |
+| `components/OrderApp.tsx` | Admin 時在導覽列放 `ExportAllButton` |
 
 不改任何資料表。
 
