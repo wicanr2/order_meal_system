@@ -14,6 +14,7 @@ import { ordersToCsv, downloadCsv } from '@/lib/csv';
 import MenuEditor from '@/components/MenuEditor';
 import OrderHistory from '@/components/OrderHistory';
 import UserManager from '@/components/UserManager';
+import ExportAllButton from '@/components/ExportAllButton';
 import type { Menu, MenuItem, OrderCancellation, OrderRecord } from '@/types';
 
 interface Me {
@@ -326,6 +327,7 @@ export default function OrderApp() {
                 </button>
               ))}
             </div>
+            {me.isAdmin && <ExportAllButton onResult={showToast} />}
             <button onClick={logout} className="p-2 text-gray-400 hover:text-red-500 transition-colors" title="登出">
               <LogOut className="w-5 h-5" />
             </button>
