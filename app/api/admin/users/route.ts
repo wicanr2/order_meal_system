@@ -1,30 +1,14 @@
 import { NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { decodeClaims } from '@/lib/jwt';
 import { accountId } from '@/lib/auth';
 import { pickAccountEmail } from '@/lib/account';
+import { getAdminCaller, isAdminCaller } from '@/lib/admin-auth';
 import type { SupabaseClient } from '@supabase/supabase-js';
-import type { AppClaims } from '@/lib/jwt';
 
 // 使用者管理 API(admin only)。
 // 身分鍵為 account_id = 工號|姓名。寫入一律走 service-role(繞 RLS),
 // 呼叫者身分用 server session 的 is_admin claim 把關。
 // 建立員工需同時建 auth user + profile,故無法只靠前端 client。
-
-async function getAdminCaller(): Promise<AppClaims | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser(); // 驗 token 有效
-  if (!user) return null;
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) return null;
-  const claims = decodeClaims(session.access_token);
-  return claims.is_admin ? claims : null;
-}
-
-async function isAdminCaller(): Promise<boolean> {
-  return !!(await getAdminCaller());
-}
 
 // 員工規模小,單頁 listUsers 足夠以 email 反查 auth user
 async function findAuthUser(admin: SupabaseClient, email: string) {

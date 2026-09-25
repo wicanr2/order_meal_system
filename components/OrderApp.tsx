@@ -83,6 +83,7 @@ export default function OrderApp() {
   const [orders, setOrders] = useState<OrderRecord[]>([]);
   const [reportMode, setReportMode] = useState<ReportMode>('day');
   const [statisticsStatusFilter, setStatisticsStatusFilter] = useState<OrderStatusFilter>('active');
+  const [exportingAll, setExportingAll] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const showToast = (message: string, type: 'success' | 'error' = 'success') => {
@@ -262,6 +263,37 @@ export default function OrderApp() {
     const label = reportMode === 'day' ? currentDate : range.label;
     downloadCsv(`訂餐${reportMode === 'day' ? '每日' : reportMode === 'week' ? '每週' : '每月'}報表_${label}.csv`, csv);
     showToast('CSV 匯出成功!');
+  };
+
+  // 全部訂單明細匯出:server 端 RPC 一次取回並核對筆數,前端再以 X-Export-Total 二次核對
+  const exportAllCsv = async () => {
+    setExportingAll(true);
+    try {
+      const res = await fetch(`/api/admin/orders/export?status=${statisticsStatusFilter}`, { cache: 'no-store' });
+      if (!res.ok) {
+        const json = await res.json().catch(() => ({}));
+        showToast(json.error ?? '匯出失敗', 'error');
+        return;
+      }
+      const expected = Number(res.headers.get('X-Export-Total'));
+      const blob = await res.blob();
+      // 欄位不含換行:資料列數 = 換行數(表頭後每列前置一個 \n)
+      const actual = ((await blob.text()).match(/\n/g) ?? []).length;
+      if (!Number.isInteger(expected) || actual !== expected) {
+        showToast('匯出不完整,請重試', 'error');
+        return;
+      }
+      if (expected === 0) { showToast('沒有符合條件的訂單', 'error'); return; }
+      const disposition = res.headers.get('Content-Disposition') ?? '';
+      const match = disposition.match(/filename\*=UTF-8''([^;]+)/);
+      const filename = match ? decodeURIComponent(match[1]) : '訂餐全部明細.csv';
+      downloadCsv(filename, blob);
+      showToast(`已匯出 ${expected} 筆訂單`);
+    } catch {
+      showToast('匯出失敗', 'error');
+    } finally {
+      setExportingAll(false);
+    }
   };
 
   const logout = async () => {
@@ -492,6 +524,10 @@ export default function OrderApp() {
                     <button onClick={exportCsv}
                       className="flex items-center text-sm bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium transition-colors border border-green-200">
                       <Download className="w-4 h-4 mr-1" /> 匯出 CSV
+                    </button>
+                    <button onClick={exportAllCsv} disabled={exportingAll}
+                      className="flex items-center text-sm bg-green-50 hover:bg-green-100 text-green-700 px-3 py-1.5 rounded-lg font-medium transition-colors border border-green-200 disabled:opacity-50 disabled:cursor-not-allowed">
+                      <Download className="w-4 h-4 mr-1" /> {exportingAll ? '匯出中' : '匯出全部'}
                     </button>
                   </div>
                 </div>
